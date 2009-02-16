@@ -859,6 +859,7 @@ int parseCount(const std::vector<std::string> &names, int command)
 		{
 			std::cout << i << '\t' << g->_discards[i].size() << std::endl;
 		}
+		return ErrNone;
 	}
 	return ErrUnableToParse;
 }
