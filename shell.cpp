@@ -903,7 +903,7 @@ bool splitLine(const std::string &line, std::vector<std::string> &target)
 	const std::string &trimmed = boost::trim_copy(line);
 	target.clear();
 
-	rule<> word = (+(alnum_p | '(' | ')' | "\\ " | '.' | '/' ))[push_back_a(target)];
+	rule<> word = (+(alnum_p | '(' | ')' | "\\ " | '.' | '/' | '@'))[push_back_a(target)];
 	rule<> sentence = *(*space_p >> word);
 	
 	if (!parse(trimmed.c_str(), sentence).full)
