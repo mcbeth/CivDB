@@ -48,7 +48,7 @@ const char **topHelps[] = {createHelp,discardHelp,drawHelp,
 	removeHelp,tradeHelp,reshuffleHelp,
 	listHelp,countHelp,giveHelp,shuffleInHelp};
 
-const char *objectList[] = {"powers","players","decks","discards"};
+const char *objectList[] = {"powers","players","decks","discards","calamities"};
 const char *typeList[] = {"tradable","nontradable"};
 
 char *fillBuffer(const std::string &name, const std::string &text, int &state)
@@ -817,7 +817,25 @@ int parseList(const std::vector<std::string> &names, int command)
 	        }
 	        return ErrNone;
         }
+	if (boost::icontains(names[1],"calamities"))
+	{
+		typedef std::multimap<CardP, PowerP> RevMap;
+		RevMap calamities;
+		for(Powers::const_iterator i = g->_powers.begin(); i != g->_powers.end(); i++)
+		{
+			for(Hand::const_iterator j = i->first->_hand.begin(); j != i->first->_hand.end(); j++)
+			{
+				if ((*j)->_type != Card::Normal)
+					calamities.insert(std::make_pair(*j,i->first));
+			}
+		}
 
+		for(RevMap::const_iterator i = calamities.begin(); i != calamities.end(); i++)
+		{
+			std::cout << i->first->_name << ": " << i->second->_name << std::endl;
+		}
+		return ErrNone;
+	}
 	return ErrUnableToParse;
 }
 
