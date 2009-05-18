@@ -17,6 +17,15 @@ namespace boost { namespace serialization {
 		ar & make_nvp("maxCount",c._maxCount);
 		ar & make_nvp("type", c._type);
 		ar & make_nvp("image", c._image);
+
+		if (version == 0)
+		{
+			// Accidentally had swapped type
+			if (c._type == Card::NonTradable)
+				c._type = Card::Tradable;
+			else if (c._type == Card::Tradable)
+				c._type = Card::NonTradable;
+		}
 	}
 	
 	template<class Archive>
@@ -48,14 +57,26 @@ namespace boost { namespace serialization {
 }}
 
 BOOST_CLASS_VERSION(Power, 1)
+BOOST_CLASS_VERSION(Card, 1)
 
 bool CardCompare::operator()(const CardP &lhs, const CardP &rhs) const
 {
+	if (lhs->_type != rhs->_type)
+		if (lhs->_type == Card::Minor)
+			return true;
+		else if (rhs->_type == Card::Minor)
+			return false;
+
 	if (lhs->_deck < rhs->_deck)
 		return true;
 	if (lhs->_deck > rhs->_deck)
 		return false;
-	
+
+	if (lhs->_type < rhs->_type)
+		return true;
+	if (lhs->_type > rhs->_type)
+		return false;
+
 	if (lhs->_maxCount < rhs->_maxCount)
 		return true;
 	if (lhs->_maxCount > rhs->_maxCount)

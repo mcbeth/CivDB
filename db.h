@@ -16,8 +16,8 @@ class Card
 	public:
 	enum Type{
 		Normal,
-		NonTradable = -1,
-		Tradable = -2,
+		Tradable = -1,
+		NonTradable = -2,
 		Minor = -3,
 	};	
 	
