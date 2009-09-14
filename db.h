@@ -24,6 +24,7 @@ class Card
 	std::string _name;
 	int _deck;
 	int _maxCount;
+	bool _supplement;
 	Type _type;
 	std::string _image;
 };
@@ -80,6 +81,7 @@ class Game
 	
 	std::string _name;
 	std::string _url;
+	std::string _ruleset;
 	Powers _powers;
 	Decks _decks;
 	Hands _discards;

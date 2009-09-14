@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <boost/algorithm/string.hpp>
+#include <boost/assign.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -18,38 +19,81 @@ namespace fs = boost::filesystem;
 #include <boost/scoped_ptr.hpp>
 #include <boost/bind.hpp>
 
-#include <boost/spirit/core.hpp>
-#include <boost/spirit/actor/push_back_actor.hpp>
+#include <boost/spirit/include/classic_core.hpp>
+#include <boost/spirit/include/classic_push_back_actor.hpp>
+
+const std::string version("0.3");
+typedef std::map<std::string, std::string> HelpText;
 
 boost::scoped_ptr<Game> g;
+boost::scoped_ptr<HelpText> ht(new HelpText);
 std::string g_currentPower;
 int g_currentDeck(0);
 
-const char *createHelp[] = {"create","CardList","PowerList",NULL};
+const char *createHelp[] = {"create","CardList","PowerList","RuleSet",NULL};
 const char *discardHelp[] = {"discard","Power","[Card]",(const char *)(1)};
 const char *drawHelp[] = {"draw","Power","NumCards","[Pick]",(const char *)(1)};
+const char *dumpHelp[] = {"dump", "DestinationDir",NULL};
 const char *exportHelp[] = {"export","DestinationDir",NULL};
 const char *heldHelp[] = {"held","Power/Deck",NULL};
 const char *setPlayerHelp[] = {"setPlayer","Power","Name","Password","EMail",NULL};
+const char *saveHelp[] = {"save",NULL};
 const char *quitHelp[] = {"quit",NULL};
 const char *abortHelp[] = {"abort",NULL};
-const char *insertHelp[] = {"insert", "Deck", "Card", NULL};
-const char *removeHelp[] = {"remove", "Deck", "Card", NULL};
+//const char *insertHelp[] = {"insert", "Deck", "Card", NULL};
+//const char *removeHelp[] = {"remove", "Deck", "Card", NULL};
 const char *tradeHelp[] = {"trade", "Power", "Card", "Card", "Card", "Power", "Card", "Card", "Card", (const char *)(1)};
 const char *reshuffleHelp[] = {"reshuffle",NULL};
 const char *listHelp[] = {"list","Object",NULL};
 const char *countHelp[] = {"count","Object",NULL};
-const char *giveHelp[] = {"give", "Power", "Power", "Card", NULL};
+const char *giveHelp[] = {"give", "FromPower", "ToPower", "Card", NULL};
 const char *shuffleInHelp[] = {"shufflein","deck","type","maxCount","cardName",NULL};
+const char *helpHelp[] = {"help", "command", NULL};
 
 const char **topHelps[] = {createHelp,discardHelp,drawHelp,
+	dumpHelp,
 	exportHelp,heldHelp,setPlayerHelp,
-	quitHelp,abortHelp, insertHelp,
-	removeHelp,tradeHelp,reshuffleHelp,
-	listHelp,countHelp,giveHelp,shuffleInHelp};
+	saveHelp,quitHelp,abortHelp, 
+	tradeHelp,reshuffleHelp,
+	listHelp,countHelp,giveHelp,shuffleInHelp,helpHelp};
+
+typedef char **CompleteFunc(const std::vector<std::string> &text, const char *, int depth, int command);
+typedef int ParseFunc(const std::vector<std::string> &text, int command);
+
+struct COMMAND {
+	const std::string name;
+	CompleteFunc *cf;
+	ParseFunc *pf;
+};
+
+extern const COMMAND topCommand[];
 
 const char *objectList[] = {"powers","players","decks","discards","calamities"};
 const char *typeList[] = {"tradable","nontradable"};
+const char *rulesList[] = {"AdvCiv","CivProject30"};
+
+bool loadHelpText(HelpText &ht)
+{
+boost::assign::insert(ht)
+("abort","Quits the program without saving any work")
+("discard","(+) Throws the cards selected and all calamities the power has in the appropriate discard piles")
+("export","Writes hand information and authorization information appropriate for hand.php to the selected directory")
+("help","Gives you access to longer helps strings for each command")
+("quit","Saves the current state and quites")
+("save","Saves the current state and doesn't quit")
+("trade","(+) Trades the cards between the two players.  You are responsible to verify that their expectations meet, the software will verify that the trade is completeable and legal (at least three cards and the players do have them and the calamities are not tradeable)")
+("count","Counts the number of cards in the selected category (except players, which counts the players)")
+("draw","(+) The first number is the number of decks to draw from (does not support the Imperial variant (yet).  Each additional optional number is a single card drawn from the stack.  So, for example, if your rules allow drawing and buying at teh same time. 'draw Assyria 4 9' would give Assyria cards from 1-4 and a 9. 'draw Assyria 0 3 3' would just give Assyria two 3 cards")
+("give","(+) Give hands a card from the first power to the second power (you are responsible for your own random selection for now)")
+("setPlayer","(+) Assigns a player,password, and e-mail addres to a power")
+("create","(+) Accepts a list of cards, powers, and an ruleset to create a new game (see example)")
+("dump","Creates a list of cards and powers that would allow creating a game just like the current one (but in the base state) to the selected directory")
+("held","Provides a single list of the contents of a power's hand or a single deck")
+("list","Provides a list of all of the features of the selected category (same categories as count), the calamity list should be in resolution order")
+("reshuffle","(+) Perform the appropriate shuffling of the discard stacks into the trade stacks (should only happen once a turn)")
+("shufflein","(+) a disaster recovery command, allows you to add a whole new type of card to the deck");
+}
+
 
 char *fillBuffer(const std::string &name, const std::string &text, int &state)
 {
@@ -69,6 +113,33 @@ char *fillBuffer(const std::string &name, const std::string &text, int &state)
 			state--;
 		}
 	}
+	return NULL;
+}
+
+char *fillFromArray(const std::string &text, int state, const char **list, const int numValues)
+{
+	int skip = state;
+
+	for(int i = 0; i < numValues; i++)
+	{
+		char *value = NULL;
+		if (value = fillBuffer(list[i], text, skip))
+			return value;
+	}
+	return NULL;
+}
+
+char *fillFromArray(const std::string &text, int state, const COMMAND *array, const int numValues)
+{
+	int skip = state;
+	
+	for(int i = 0; i < numValues; i++)
+	{
+		char *value = NULL;
+		if (value = fillBuffer(array[i].name, text, skip))
+			return value;
+	}
+
 	return NULL;
 }
 
@@ -203,6 +274,27 @@ char *augmentedTradeFill(const char *text, int state)
 	return NULL;
 }
 
+char *topFill(const char *text, int state);
+
+char **completeHelp(const std::vector<std::string> &, const char *text, int depth, int command)
+{
+	switch (depth)
+	{
+		case 1:
+		{
+			return rl_completion_matches(text, topFill);
+			break;
+		}
+	}
+	return NULL;
+}
+
+char *rulesFill(const char *text, int state)
+{
+	const int numValues = sizeof(rulesList)/sizeof(const char *);
+	return fillFromArray(text, state, rulesList, numValues);
+}
+
 char **completeCreate(const std::vector<std::string> &, const char *text, int depth, int command)
 {
 	switch (depth)
@@ -211,6 +303,11 @@ char **completeCreate(const std::vector<std::string> &, const char *text, int de
 		case 2:
 		{
 			return  rl_completion_matches(text, rl_filename_completion_function);
+			break;
+		}
+		case 3:
+		{
+			return rl_completion_matches(text, rulesFill);
 			break;
 		}
 	}
@@ -423,7 +520,7 @@ int parseCreate(const std::vector<std::string> &names, int command)
 	if (!isValidCount(command, names.size()))
 		return parseHelp(names, command);
 	
-	if (!CreateGame(names[1],names[2],*g))
+	if (!CreateGame(names[1],names[2],names[3],*g))
 		return ErrGameCreation;
 
 	return ErrNone;
@@ -473,6 +570,11 @@ int parseGive(const std::vector<std::string> &names, int command)
 	std:: cout << std::endl << std::endl;
 	
 	return ErrNone;
+}
+
+int parseSave(const std::vector<std::string> &names, int command)
+{
+	return ErrSave;
 }
 
 int parseQuit(const std::vector<std::string> &names, int command)
@@ -552,6 +654,39 @@ int parseDraw(const std::vector<std::string> &names, int command)
 	return ErrNone;	
 }
 
+int parseDump(const std::vector<std::string> &names, int command)
+{
+	if (!isValidCount(command, names.size()))
+		return parseHelp(names, command);
+
+	fs::path base(names[1]);
+	fs::ofstream cardList(base/"cardList", std::ios::binary);
+	fs::ofstream powerList(base/"powerList", std::ios::binary);
+	for(int i = 0; i < g->_decks.size(); i++)
+	{
+		for(Cards::const_iterator j = g->_cards.begin(); j != g->_cards.end(); j++)
+		{
+			if (i == (*j)->_deck && (*j)->_type == Card::Normal)
+				cardList << i << '\t' << (*j)->_maxCount << '\t' << (*j)->_name << std::endl;
+		}	
+
+		for(Cards::const_iterator j = g->_cards.begin(); j != g->_cards.end(); j++)
+		{
+			if (i == (*j)->_deck && (*j)->_type != Card::Normal)
+			{
+				cardList << (*j)->_type << '\t' << 1 << '\t' << (*j)->_name << std::endl;
+			}
+		}
+	}
+
+	for(Powers::const_iterator i = g->_powers.begin(); i != g->_powers.end(); i++)
+	{
+		powerList << i->first->_name << std::endl;
+	}
+
+	return ErrNone;
+}
+
 int parseExport(const std::vector<std::string> &names, int command)
 {
 	if (!isValidCount(command, names.size()))
@@ -624,6 +759,7 @@ int parseSetPlayer(const std::vector<std::string> &names, int command)
 	Powers::iterator power;
 	if ((power = g->FindPower(names[1])) == g->_powers.end())
 	{
+		std::cerr << "Can't find '"<< names[1] << "'" << std::endl;
 		return ErrPowerNotFound;
 	}
 
@@ -707,6 +843,17 @@ int parseTrade(const std::vector<std::string> &names, int command)
 	}
 	std::cout << std::endl;
 	
+	return ErrNone;
+}
+
+int parseHelpText(const std::vector<std::string> &names, int command)
+{
+	if (!isValidCount(command, names.size()))
+		return parseHelp(names, command);
+
+	HelpText::const_iterator i = ht->find(names[1]);
+	if (i != ht->end())
+		std::cout << i->second << std::endl;
 	return ErrNone;
 }
 
@@ -844,12 +991,32 @@ int parseCount(const std::vector<std::string> &names, int command)
 	if (!isValidCount(command, names.size()))
 		return parseHelp(names, command);
 
+	if (boost::iequals(names[1],"calamities"))
+	{
+		int bigCount(0); 
+		for(Powers::const_iterator i = g->_powers.begin(); i != g->_powers.end(); i++)
+		{
+			int count(0);
+			for(Cards::const_iterator j = i->first->_hand.begin(); j != i->first->_hand.end(); j++)
+			{
+				if ((*j)->_type != Card::Normal)
+					count++;
+			}
+			std::cout << i->first->_name << '\t' << count << std::endl;
+			bigCount+=count;
+		}
+		std::cout << "Total:\t" << bigCount << std::endl;
+		return ErrNone;
+	}
 	if (boost::iequals(names[1],"powers"))
 	{
+		int bigCount(0);
 		for(Powers::const_iterator i = g->_powers.begin(); i != g->_powers.end(); i++)
 		{
 			std::cout << i->first->_name << '\t' << i->first->_hand.size() << std::endl;
+			bigCount += i->first->_hand.size();
 		}
+		std::cout << "Total:\t" << bigCount << std::endl;
 		return ErrNone;
 	}
 	if (boost::iequals(names[1],"players"))
@@ -865,18 +1032,24 @@ int parseCount(const std::vector<std::string> &names, int command)
 	}
 	if (boost::iequals(names[1],"decks"))
 	{
+		int bigCount(0);
 		for(int i = 1; i < g->_decks.size(); i++)
 		{
 			std::cout << i << '\t' << g->_decks[i].size() << std::endl;
+			bigCount += g->_decks[i].size();
 		}
+		std::cout << "Total:\t" << bigCount << std::endl;
 		return ErrNone;
 	}
 	if (boost::iequals(names[1],"discards"))
 	{
+		int bigCount(0);
 		for(int i = 1; i < g->_discards.size(); i++)
 		{
 			std::cout << i << '\t' << g->_discards[i].size() << std::endl;
+			bigCount += g->_discards[i].size();
 		}
+		std::cout << "Total:\t" << bigCount << std::endl;
 		return ErrNone;
 	}
 	return ErrUnableToParse;
@@ -889,40 +1062,13 @@ int parseNULL(const std::vector<std::string> &names, int command)
 	return ErrNone;
 }
 
-typedef char **CompleteFunc(const std::vector<std::string> &text, const char *, int depth, int command);
-typedef int ParseFunc(const std::vector<std::string> &text, int command);
-
-struct COMMAND {
-	const std::string name;
-	CompleteFunc *cf;
-	ParseFunc *pf;
-};
-
-const COMMAND topCommand[] = {{createHelp[0],completeCreate,parseCreate},
-							{discardHelp[0],completeDiscard,parseDiscard},
-							{drawHelp[0],completeDraw,parseDraw},
-							{exportHelp[0],completeExport,parseExport},
-							{heldHelp[0],completeHeld,parseHeld},
-							{setPlayerHelp[0],completeSetPlayer,parseSetPlayer},
-							{quitHelp[0],completeNULL,parseQuit},
-							{abortHelp[0],completeNULL,parseAbort},
-							{insertHelp[0],completeInsert,parseNULL},
-							{removeHelp[0],completeInsert,parseNULL},
-							{tradeHelp[0],completeTrade,parseTrade},
-							{reshuffleHelp[0],completeNULL,parseReshuffle},
-							{listHelp[0],completeList, parseList},
-							{countHelp[0],completeList,parseCount},
-							{giveHelp[0],completeGive,parseGive},
-							{shuffleInHelp[0],completeShuffleIn,parseShuffleIn},
-							};
-							
 bool splitLine(const std::string &line, std::vector<std::string> &target)
 {
-	using namespace boost::spirit;
+	using namespace boost::spirit::classic;
 	const std::string &trimmed = boost::trim_copy(line);
 	target.clear();
 
-	rule<> word = (+(alnum_p | '(' | ')' | "\\ " | '.' | '/' | '@'))[push_back_a(target)];
+	rule<> word = (+(alnum_p | '_' | '(' | ')' | "\\ " | '.' | '/' | '@'))[push_back_a(target)];
 	rule<> sentence = *(*space_p >> word);
 	
 	if (!parse(trimmed.c_str(), sentence).full)
@@ -936,25 +1082,33 @@ bool splitLine(const std::string &line, std::vector<std::string> &target)
 	return true;
 }
 
-char *fillFromArray(const std::string &text, int state, const COMMAND *array, const int numValues)
-{
-	int skip = state;
-	
-	for(int i = 0; i < numValues; i++)
-	{
-		char *value = NULL;
-		if (value = fillBuffer(array[i].name, text, skip))
-			return value;
-	}
-
-	return NULL;
-}
+const COMMAND topCommand[] = {{createHelp[0],completeCreate,parseCreate},
+							{discardHelp[0],completeDiscard,parseDiscard},
+							{drawHelp[0],completeDraw,parseDraw},
+							{dumpHelp[0],completeExport,parseDump},
+							{exportHelp[0],completeExport,parseExport},
+							{heldHelp[0],completeHeld,parseHeld},
+							{setPlayerHelp[0],completeSetPlayer,parseSetPlayer},
+							{saveHelp[0], completeNULL,parseSave},
+							{quitHelp[0],completeNULL,parseQuit},
+							{abortHelp[0],completeNULL,parseAbort},
+							//{insertHelp[0],completeInsert,parseNULL},
+							//{removeHelp[0],completeInsert,parseNULL},
+							{tradeHelp[0],completeTrade,parseTrade},
+							{reshuffleHelp[0],completeNULL,parseReshuffle},
+							{listHelp[0],completeList, parseList},
+							{countHelp[0],completeList,parseCount},
+							{giveHelp[0],completeGive,parseGive},
+							{shuffleInHelp[0],completeShuffleIn,parseShuffleIn},
+							{helpHelp[0], completeHelp, parseHelpText},
+							};
 
 char *topFill(const char *text, int state)
 {
 	const int numValues = sizeof(topCommand)/sizeof(COMMAND);
 	return fillFromArray(text, state, topCommand, numValues);
 }
+
 
 char **partialComplete(const std::vector<std::string> &target, const char *text)
 {
@@ -1011,10 +1165,12 @@ int main(int argc, char *argv[])
 	if (argc != 2 && argc != 3)
 	{
 		std::cerr << argv[0] << " dbName [exportDir]" << std::endl;
+		std::cerr << "Version: " << version << std::endl;
 		return ErrQuit;
 	}
 
 	g.reset(new Game(argv[1]));
+	loadHelpText(*ht);
 
 	while(true)
 	{
@@ -1028,6 +1184,12 @@ int main(int argc, char *argv[])
 			
 			if (error == ErrQuit)
 				break;
+			if (error == ErrSave)
+			{
+				g.reset();
+				g.reset(new Game(argv[1]));
+				continue;
+			}
 			if (error != ErrNone)
 				std::cerr << "Error " << error << std::endl;
 			if (error > ErrQuit)

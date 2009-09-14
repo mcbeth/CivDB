@@ -26,6 +26,10 @@ namespace boost { namespace serialization {
 			else if (c._type == Card::Tradable)
 				c._type = Card::NonTradable;
 		}
+		if (version > 1)
+			ar & make_nvp("supplement",c._supplement);
+		else
+			c._supplement = false;
 	}
 	
 	template<class Archive>
@@ -49,6 +53,10 @@ namespace boost { namespace serialization {
 	{
 		ar & make_nvp("name",g._name);
 		ar & make_nvp("url", g._url);
+		if (version == 0)
+			g._ruleset = "AdvCiv";
+		if (version > 1)
+			ar & make_nvp("ruleset", g._ruleset);
 		ar & make_nvp("cards", g._cards);
 		ar & make_nvp("powers", g._powers);
 		ar & make_nvp("decks", g._decks);
@@ -57,7 +65,8 @@ namespace boost { namespace serialization {
 }}
 
 BOOST_CLASS_VERSION(Power, 1)
-BOOST_CLASS_VERSION(Card, 1)
+BOOST_CLASS_VERSION(Card, 2)
+BOOST_CLASS_VERSION(Game, 1)
 
 bool CardCompare::operator()(const CardP &lhs, const CardP &rhs) const
 {
@@ -93,15 +102,19 @@ void Game::Save(const std::string &filename)
 	std::ofstream out(filename.c_str(), std::ios::binary);
 	boost::archive::xml_oarchive oa(out);
 	oa << boost::serialization::make_nvp("Game",*this);
+	std::cout << "Saved " << filename << std::endl;
 }
 
 void Game::Load(const std::string &filename)
 {
 	std::ifstream in(filename.c_str(), std::ios::binary);
 	if (!in.is_open())
+	{
 		return;
+	}
 	boost::archive::xml_iarchive ia(in);
 	ia >> boost::serialization::make_nvp("Game",*this);
+	std::cout << "Loaded " << filename << std::endl;
 }
 
 bool Power::Has(const Hand &cards) const

@@ -87,6 +87,10 @@ bool ParseCardLists(const std::string &filename, Game &g)
 	{
 		CardP card(new Card);
 		in >> card->_deck >> card->_maxCount;
+		if (g._ruleset != "AdvCiv")
+			in >> card->_supplement;
+		else
+			card->_supplement = false;
 		if (card->_deck < 0)
 		{
 			card->_type = static_cast<Card::Type>(card->_deck);
@@ -144,7 +148,51 @@ void ShuffleIn(Deck &d, Hand &hand)
 	d.insert(d.end(), unshuffled.begin(), unshuffled.end());
 }
 
-bool CreateDecks(Game &g)
+bool CreateDecksCivProject30(Game &g)
+{
+	g._decks.resize(10);
+	g._discards.resize(10);
+
+	for(int i = 1; i < g._decks.size(); i++)
+	{
+		std::vector<CardP> holding;
+		std::vector<CardP> supplement;
+		std::vector<CardP> nonTrade;
+		g._decks[i].clear();
+		for(Cards::const_iterator j = g._cards.begin(); j != g._cards.end(); j++)
+		{
+			if ((*j)->_deck != i)
+				continue;
+			if ((*j)->_supplement)
+			{
+				supplement.insert(supplement.end(), (*j)->_maxCount, *j);
+				continue;
+			}
+			if ((*j)->_type == Card::NonTradable)
+			{
+				nonTrade.push_back(*j);
+				continue;
+			}
+			if ((*j)->_type == Card::Tradable)
+			{
+				g._decks[i].insert(g._decks[i].end(), *j);
+				continue;
+			}
+			if ((*j)->_type == Card::Normal || (*j)->_type == Card::Minor)
+			{
+				holding.insert(holding.end(), (*j)->_maxCount, *j);
+			}
+		}
+		std::random_shuffle(holding.begin(), holding.end(), CivRand);
+
+		g._decks[i].insert(g._decks[i].begin(),holding.begin(), holding.end());
+		g._decks[i].insert(g._decks[i].end(), supplement.begin(), supplement.end());
+		g._decks[i].insert(g._decks[i].end(), nonTrade.begin(), nonTrade.end());
+	}
+	return true;
+}
+
+bool CreateDecksAdvCiv(Game &g)
 {
 	const int numPlayers = g._powers.size();
 	std::vector<CardP> holding;
@@ -157,7 +205,8 @@ bool CreateDecks(Game &g)
 
 		for(Cards::const_iterator j = g._cards.begin(); j != g._cards.end(); j++)
 		{
-			if ((*j)->_deck == i && (*j)->_type == Card::Normal)
+			if ((*j)->_deck == i && ((*j)->_type == Card::Normal || (*j)->_type == Card::Minor))
+
 			{
 				holding.insert(holding.end(), (*j)->_maxCount, *j);
 			}
@@ -174,7 +223,7 @@ bool CreateDecks(Game &g)
 		
 		for(Cards::const_iterator j = g._cards.begin(); j != g._cards.end(); j++)
 		{
-			if ((*j)->_deck == i && ((*j)->_type == Card::Tradable || (*j)->_type == Card::Minor))
+			if ((*j)->_deck == i && ((*j)->_type == Card::Tradable))
 			{
 				holding.push_back(*j);
 			}
@@ -199,6 +248,15 @@ bool CreateDecks(Game &g)
 	return true;
 }
 
+bool CreateDecks(Game &g)
+{
+	if (g._ruleset == "AdvCiv")
+		return CreateDecksAdvCiv(g);
+	if (g._ruleset == "CivProject30")
+		return CreateDecksCivProject30(g);
+	return false;
+}
+
 bool ParsePowerList(const std::string &filename, Game &g)
 {
 	PlayerP player;
@@ -213,10 +271,11 @@ bool ParsePowerList(const std::string &filename, Game &g)
 	return g._powers.size() ;
 }
 
-bool CreateGame(const std::string &cards, const std::string &powers, Game &g)
+bool CreateGame(const std::string &cards, const std::string &powers, const std::string &ruleset, Game &g)
 {
 	g._name = "";
 	g._url = "";
+	g._ruleset = ruleset;
 	g._powers.empty();
 	g._decks.empty();
 	g._discards.empty();
