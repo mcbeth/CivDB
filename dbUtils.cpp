@@ -6,6 +6,22 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
+int ValueHand(const Hand &hand)
+{
+	int value = 0;
+	CardP currentCard;
+	for(Hand::const_iterator i = hand.begin(); i != hand.end(); i++)
+	{
+		if (currentCard == (*i))
+			continue;
+		currentCard = *i;
+		const int count = hand.count(currentCard);
+		const int deck = currentCard->_deck;
+		if (currentCard->_type == Card::Normal)
+			value += count*count*deck;
+	}
+	return value;
+}
 void RenderHand(std::ostream &out, const Hand &hand)
 {
 	if (hand.size() == 0)
@@ -14,7 +30,6 @@ void RenderHand(std::ostream &out, const Hand &hand)
 		return;
 	}
 	
-	int value = 0;
 	CardP currentCard;
 	for(Hand::const_iterator i = hand.begin(); i != hand.end(); i++)
 	{
@@ -24,9 +39,8 @@ void RenderHand(std::ostream &out, const Hand &hand)
 		const int count = hand.count(currentCard);
 		const int deck  = currentCard->_deck;
 		out << count << "x " << currentCard->_name  << std::endl;
-		if (currentCard->_type == Card::Normal)
-			value += count*count*deck;
 	}
+	int value = ValueHand(hand);
 	if (value > 0)
 		out << "Value: " << value << std::endl;
 }
@@ -310,11 +324,11 @@ void FillCalamities(const Game &g, const Power &p, Hand &hand)
 		}
 	}
 	
-	for(Hand::const_iterator i = hand.begin(); i != hand.end(); i++)
-	{
-		std::cerr << (*i)->_name << '\t';
-	}
-	std::cerr << std::endl;	
+//	for(Hand::const_iterator i = hand.begin(); i != hand.end(); i++)
+//	{
+//		std::cerr << (*i)->_name << '\t';
+//	}
+//	std::cerr << std::endl;	
 }
 
 void PickCard(Game &g, Hand &hand, int i)

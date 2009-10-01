@@ -22,7 +22,7 @@ namespace fs = boost::filesystem;
 #include <boost/spirit/include/classic_core.hpp>
 #include <boost/spirit/include/classic_push_back_actor.hpp>
 
-const std::string version("0.3");
+const std::string version("0.31");
 typedef std::map<std::string, std::string> HelpText;
 
 boost::scoped_ptr<Game> g;
@@ -604,6 +604,8 @@ int parseDiscard(const std::vector<std::string> &names, int command)
 		return ErrCardNotFound;
 	
 	FillCalamities(*g, *power->first, toss);
+	RenderHand(std::cout, toss);
+	std::cout << std::endl;
 	
 	if (!RemoveHand(power->first->_hand, toss))
 		return ErrCardDeletion;
@@ -1193,7 +1195,10 @@ int main(int argc, char *argv[])
 			if (error != ErrNone)
 				std::cerr << "Error " << error << std::endl;
 			if (error > ErrQuit)
-				throw error;
+			{
+				g->Abandon();
+				return error;
+			}
 		}
 	}
 	if (argc == 3)

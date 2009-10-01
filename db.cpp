@@ -97,12 +97,19 @@ bool CardCompare::operator()(const CardP &lhs, const CardP &rhs) const
 	return false;
 }
 
+void Game::Abandon()
+{
+	_abandon = true;
+}
+
 void Game::Save(const std::string &filename)
 {
+	if (_abandon)
+		return;
 	std::ofstream out(filename.c_str(), std::ios::binary);
 	boost::archive::xml_oarchive oa(out);
 	oa << boost::serialization::make_nvp("Game",*this);
-	std::cout << "Saved " << filename << std::endl;
+	std::cerr << "Saved " << filename << std::endl;
 }
 
 void Game::Load(const std::string &filename)
@@ -114,7 +121,7 @@ void Game::Load(const std::string &filename)
 	}
 	boost::archive::xml_iarchive ia(in);
 	ia >> boost::serialization::make_nvp("Game",*this);
-	std::cout << "Loaded " << filename << std::endl;
+	std::cerr << "Loaded " << filename << std::endl;
 }
 
 bool Power::Has(const Hand &cards) const
