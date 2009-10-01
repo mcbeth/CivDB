@@ -18,6 +18,7 @@ enum dbErrors
 	ErrGameCreation,
 };
 
+int ValueHand(const Hand &hand);
 void RenderHand(std::ostream &out, const Hand &hand);
 void RenderDeck(std::ostream &out, const Deck &deck);
 void ShuffleIn(Deck &d, Hand &hand);

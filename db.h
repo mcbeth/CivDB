@@ -76,7 +76,7 @@ typedef std::vector<Deck> Decks;
 class Game
 {
 	public:
-	Game(const std::string &f):_fn(f){Load(_fn);}
+	Game(const std::string &f, bool abandon=false):_fn(f),_abandon(abandon){Load(_fn);}
 	~Game(){Save(_fn);}
 	
 	std::string _name;
@@ -91,9 +91,11 @@ class Game
 	Powers::const_iterator FindPower(const std::string &) const;
 
 	CardP FindCard(const std::string &) const;
+	void Abandon();
 	
 	private:
 		std::string _fn;
+		bool _abandon; // We don't want this state saveable
 		void Load(const std::string &);
 		void Save(const std::string &);
 };
