@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "dbUtils.h"
+#include "factory.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
@@ -9,6 +10,24 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/fstream.hpp>
 namespace fs = boost::filesystem;
+
+#include <boost/function.hpp>
+#include <boost/serialization/singleton.hpp>
+#include <iostream>
+#include <vector>
+
+typedef boost::function<int (const std::vector<std::string> &, Game &, std::ostream &)> ParseFunc;
+
+typedef FactoryOwner<ParseFunc> Parser;
+typedef boost::serialization::singleton<Parser> ParseFactory;
+
+#define REG_PARSE(_trigger, _str) \
+	static bool _trigger ## _parse_registered = \
+		ParseFactory::get_mutable_instance().Register(#_trigger, parse##_trigger); \
+	static bool _trigger ## _help_registered = \
+		HelpFactory::get_mutable_instance().Register(#_trigger, \
+				boost::bind(GenericHelp,#_trigger " " _str,_1))
+
 
 typedef boost::function<void (std::ostream &)> HelpFunc;
 typedef FactoryOwner<HelpFunc> Helper;
@@ -29,7 +48,6 @@ int parseHelpC(const std::vector<std::string> &names, Game &g, std::ostream &out
 	h[names[0]](out);
 	return ErrNone;
 }
-//REG_PARSE(HelpC,"command");
 
 int parseCreate(const std::vector<std::string> &names, Game &g, std::ostream &out)
 {
@@ -381,8 +399,29 @@ int parseTrade(const std::vector<std::string> &names, Game &g, std::ostream &out
 	return ErrNone;
 }
 REG_PARSE(Trade,"Power Card Card Card ... Power Card Card Card ...");
-
 /*
+bool loadHelpText(HelpText &ht)
+{
+boost::assign::insert(ht)
+("abort","Quits the program without saving any work")
+("discard","(+) Throws the cards selected and all calamities the power has in the appropriate discard piles")
+("export","Writes hand information and authorization information appropriate for hand.php to the selected directory")
+("help","Gives you access to longer helps strings for each command")
+("quit","Saves the current state and quites")
+("save","Saves the current state and doesn't quit")
+("trade","(+) Trades the cards between the two players.  You are responsible to verify that their expectations meet, the software will verify that the trade is completeable and legal (at least three cards and the players do have them and the calamities are not tradeable)")
+("count","Counts the number of cards in the selected category (except players, which counts the players)")
+("draw","(+) The first number is the number of decks to draw from (does not support the Imperial variant (yet).  Each additional optional number is a single card drawn from the stack.  So, for example, if your rules allow drawing and buying at teh same time. 'draw Assyria 4 9' would give Assyria cards from 1-4 and a 9. 'draw Assyria 0 3 3' would just give Assyria two 3 cards")
+("give","(+) Give hands a card from the first power to the second power (you are responsible for your own random selection for now)")
+("setPlayer","(+) Assigns a player,password, and e-mail addres to a power")
+("create","(+) Accepts a list of cards, powers, and an ruleset to create a new game (see example)")
+("dump","Creates a list of cards and powers that would allow creating a game just like the current one (but in the base state) to the selected directory")
+("held","Provides a single list of the contents of a power's hand or a single deck")
+("list","Provides a list of all of the features of the selected category (same categories as count), the calamity list should be in resolution order")
+("reshuffle","(+) Perform the appropriate shuffling of the discard stacks into the trade stacks (should only happen once a turn)")
+("shufflein","(+) a disaster recovery command, allows you to add a whole new type of card to the deck");
+}
+
 int parseHelp(const std::vector<std::string> &names, Game &g, std::ostream &out)
 {
 	if (names.size() != 2)
@@ -628,10 +667,4 @@ int ParseLine(const std::string &line, Game &g, std::ostream &out)
 		return p[target[0]](target, g, out);
 	else
 		return ErrUnableToParse;
-}
-
-int main(int argc, char *argv[])
-{
-	Game g("celtic", true);
-	return ParseLine(argv[1], g, std::cout);
 }
