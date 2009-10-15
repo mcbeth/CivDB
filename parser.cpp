@@ -58,14 +58,16 @@ int parseGive(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	CardP card = g.FindCard(names[3]);
 	if (!card)
 	{
-		if (boost::algorithm::ilexicographical_compare(names[3],"Random"))
+		if (boost::algorithm::iequals(names[3],"Random"))
 		{
 			Deck d(from->first->_hand.begin(), from->first->_hand.end());
 			std::random_shuffle(d.begin(), d.end(), CivRand);
 			card = d[0];
 		}
 		else
+		{
 			return ErrCardNotFound;
+		}
 	}
 	left.insert(card);
 	
@@ -626,4 +628,10 @@ int ParseLine(const std::string &line, Game &g, std::ostream &out)
 		return p[target[0]](target, g, out);
 	else
 		return ErrUnableToParse;
+}
+
+int main(int argc, char *argv[])
+{
+	Game g("celtic", true);
+	return ParseLine(argv[1], g, std::cout);
 }
