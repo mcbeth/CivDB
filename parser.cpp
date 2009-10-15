@@ -54,16 +54,20 @@ int parseGive(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	if (from == g._powers.end() || to == g._powers.end())
 		return ErrPowerNotFound;
 	
-	const std::vector<std::string> cards(names.begin()+3, names.end());
-
 	Hand left;
-	for(int i = 3; i < names.size(); i++)
+	CardP card = g.FindCard(names[3]);
+	if (!card)
 	{
-		CardP card = g.FindCard(names[i]);
-		if (!card)
+		if (boost::algorithm::ilexicographical_compare(names[3],"Random"))
+		{
+			Deck d(from->first->_hand.begin(), from->first->_hand.end());
+			std::random_shuffle(d.begin(), d.end(), CivRand);
+			card = d[0];
+		}
+		else
 			return ErrCardNotFound;
-		left.insert(card);
 	}
+	left.insert(card);
 	
 	if (!from->first->Has(left))
 	{
