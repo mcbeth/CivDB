@@ -38,7 +38,7 @@ void RenderHand(std::ostream &out, const Hand &hand)
 		currentCard = *i;
 		const int count = hand.count(currentCard);
 		const int deck  = currentCard->_deck;
-		out << count << "x " << currentCard->_name  << std::endl;
+		out << count << "x " << currentCard->_name << " (" << deck <<")"<< std::endl;
 	}
 	int value = ValueHand(hand);
 	if (value > 0)
