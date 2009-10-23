@@ -99,6 +99,17 @@ char *countryFill(const char *text, int state)
 	return NULL;
 }
 
+char *setFill(const char *text, int state)
+{
+	for(auto i = s_g->_vars.begin(); i != s_g->_vars.end(); ++i)
+	{
+		char *value = NULL;
+		if (value = fillBuffer(i->first, text, state))
+			return value;
+	}
+	return NULL;
+}
+
 char *typeFill(const char *text, int state)
 {
 	const char *numbers[] = {"0","-1","-2","-3"};
@@ -322,6 +333,17 @@ char **completeSetPlayer(const std::vector<std::string> &, const char *text, int
 	return NULL;
 }
 
+char **completeSet(const std::vector<std::string> &, const char *text, int depth)
+{
+	switch(depth)
+	{
+		case 1:
+			return rl_completion_matches(text,setFill);
+			break;
+	}
+	return NULL;
+}
+
 char **completeInsert(const std::vector<std::string> &data, const char *text, int depth)
 {
 	switch(depth)
@@ -440,6 +462,7 @@ REG_COMP(Dump, completeExport);
 REG_COMP(Export, completeExport);
 REG_COMP(Held, completeHeld);
 REG_COMP(SetPlayer, completeSetPlayer);
+REG_COMP(Set, completeSet);
 REG_COMP(Save, completeNULL);
 REG_COMP(Quit, completeNULL);
 REG_COMP(Abort, completeNULL);
