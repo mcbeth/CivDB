@@ -101,7 +101,7 @@ bool ParseCardLists(const std::string &filename, Game &g)
 	{
 		CardP card(new Card);
 		in >> card->_deck >> card->_maxCount;
-		if (g._ruleset != "AdvCiv")
+		if (g._vars["ruleset"] != "AdvCiv")
 			in >> card->_supplement;
 		else
 			card->_supplement = false;
@@ -264,9 +264,9 @@ bool CreateDecksAdvCiv(Game &g)
 
 bool CreateDecks(Game &g)
 {
-	if (g._ruleset == "AdvCiv")
+	if (g._vars["ruleset"] == "AdvCiv")
 		return CreateDecksAdvCiv(g);
-	if (g._ruleset == "CivProject30")
+	if (g._vars["ruleset"] == "CivProject30")
 		return CreateDecksCivProject30(g);
 	return false;
 }
@@ -287,9 +287,10 @@ bool ParsePowerList(const std::string &filename, Game &g)
 
 bool CreateGame(const std::string &cards, const std::string &powers, const std::string &ruleset, Game &g)
 {
-	g._name = "";
-	g._url = "";
-	g._ruleset = ruleset;
+	g._vars["name"] = "";
+	g._vars["url"] = "";
+	g._vars["ruleset"] = ruleset;
+	g._vars["export"] = "";
 	g._powers.empty();
 	g._decks.empty();
 	g._discards.empty();

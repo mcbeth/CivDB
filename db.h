@@ -9,7 +9,10 @@
 
 #include <boost/nondet_random.hpp>
 
+#include <boost/algorithm/string.hpp>
+
 #include <string>
+#include <queue>
 
 class Card
 {
@@ -75,17 +78,26 @@ typedef std::vector<Deck> Decks;
 
 class Game
 {
+	private:
+	struct less
+	{
+		bool operator()(const std::string &l, const std::string &r) const
+		{
+			return boost::algorithm::ilexicographical_compare(l,r);
+		}
+	};
+	typedef std::map<std::string, std::string, less> Variables;
+	
 	public:
 	Game(const std::string &f, bool abandon=false):_fn(f),_abandon(abandon){Load(_fn);}
 	~Game(){Save(_fn);}
 	
-	std::string _name;
-	std::string _url;
-	std::string _ruleset;
 	Powers _powers;
 	Decks _decks;
 	Hands _discards;
 	Cards _cards;
+	std::queue<std::string> _queue;
+	Variables _vars;
 	
 	Powers::iterator FindPower(const std::string &);
 	Powers::const_iterator FindPower(const std::string &) const;

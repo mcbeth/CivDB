@@ -120,6 +120,43 @@ int parseSave(const std::vector<std::string> &names, Game &, std::ostream &)
 }
 REG_PARSE(Save, "");
 
+int parseSet(const std::vector<std::string> &names, Game &g, std::ostream &out)
+{
+	if (names.size() > 3)
+		return parseHelpC(names, g, out);
+
+	if (names.size() == 1)
+	{
+		for(auto i = g._vars.begin(); i != g._vars.end(); ++i)
+		{
+			out << i->first << ": '" << i->second << "'" << std::endl;	
+		}
+		return ErrNone;
+	}
+
+	auto i = g._vars.find(names[1]);
+	if (i == g._vars.end())
+	{
+		out << "Undefined Variable (" << names[1] << ")" << std::endl;
+		return ErrUnableToParse;
+	}
+
+	if (names.size() == 2)
+	{
+		out << i->first << ": '" << i->second << "'" << std::endl;
+		return ErrNone;
+	}
+
+	if (names.size() == 3)
+	{
+		i->second = names[2];
+		return ErrNone;
+	}
+
+	return ErrUnableToParse;
+}
+REG_PARSE(Set, "Variable Value");
+
 int parseQuit(const std::vector<std::string> &names, Game &, std::ostream &)
 {
 	return ErrQuit;
@@ -242,7 +279,12 @@ int parseExport(const std::vector<std::string> &names, Game &g, std::ostream &ou
 	if (names.size() != 2)
 		return parseHelpC(names, g, out);
 
-	fs::path base(names[1]);
+	fs::path base;
+	if (boost::iequals(names[1], "default"))
+		base = g._vars["export"];
+	else
+		base = names[1];
+
 	fs::ofstream auth(base / "auth", std::ios::binary);
 	fs::ofstream contact(base / "contact", std::ios::binary);
 	for(Powers::const_iterator i = g._powers.begin(); i != g._powers.end(); i++)
@@ -259,6 +301,8 @@ int parseExport(const std::vector<std::string> &names, Game &g, std::ostream &ou
 		}
 	}
 
+	out << "Exported to: " << base << std::endl;
+	g._vars["export"] = base.string();
 	return ErrNone;
 }
 REG_PARSE(Export, "DestinationDir");
@@ -642,7 +686,7 @@ bool splitLine(const std::string &line, std::vector<std::string> &target)
 	const std::string &trimmed = boost::trim_copy(line);
 	target.clear();
 
-	rule<> word = (+(alnum_p | '_' | '(' | ')' | "\\ " | '.' | '/' | '@'))[push_back_a(target)];
+	rule<> word = (+(alnum_p | '~' | ':' | '_' | '(' | ')' | "\\ " | '.' | '/' | '@'))[push_back_a(target)];
 	rule<> sentence = *(*space_p >> word);
 	
 	if (!parse(trimmed.c_str(), sentence).full)

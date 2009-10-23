@@ -26,7 +26,7 @@ namespace boost { namespace serialization {
 			else if (c._type == Card::Tradable)
 				c._type = Card::NonTradable;
 		}
-		if (version > 1)
+		if (version >= 2)
 			ar & make_nvp("supplement",c._supplement);
 		else
 			c._supplement = false;
@@ -36,7 +36,7 @@ namespace boost { namespace serialization {
 	void serialize(Archive &ar, Power &p, unsigned int version)
 	{
 		ar & make_nvp("name",p._name) & make_nvp("hand",p._hand);
-		if (version > 0)
+		if (version >= 1)
 			ar & make_nvp("staging",p._staging);
 	}
 	
@@ -51,22 +51,25 @@ namespace boost { namespace serialization {
 	template <class Archive>
 	void serialize(Archive &ar, Game &g, unsigned int version)
 	{
-		ar & make_nvp("name",g._name);
-		ar & make_nvp("url", g._url);
-		if (version == 0)
-			g._ruleset = "AdvCiv";
-		if (version > 1)
-			ar & make_nvp("ruleset", g._ruleset);
+		if (version < 2)
+		{
+			ar & make_nvp("name",g._vars["name"]);
+			ar & make_nvp("url", g._vars["url"]);
+			g._vars["ruleset"] = "AdvCiv";
+		}
 		ar & make_nvp("cards", g._cards);
 		ar & make_nvp("powers", g._powers);
 		ar & make_nvp("decks", g._decks);
 		ar & make_nvp("discards", g._discards);
+		if (version >= 2)
+			ar & make_nvp("variables", g._vars);
+
 	}	
 }}
 
 BOOST_CLASS_VERSION(Power, 1)
 BOOST_CLASS_VERSION(Card, 2)
-BOOST_CLASS_VERSION(Game, 1)
+BOOST_CLASS_VERSION(Game, 2)
 
 bool CardCompare::operator()(const CardP &lhs, const CardP &rhs) const
 {

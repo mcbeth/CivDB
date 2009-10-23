@@ -17,7 +17,7 @@ namespace fs = boost::filesystem;
 
 #include <boost/scoped_ptr.hpp>
 
-const std::string version("0.32");
+const std::string version("0.35");
 //typedef std::map<std::string, std::string> HelpText;
 
 boost::scoped_ptr<Game> s_g;
@@ -520,9 +520,10 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-	if (argc == 3)
+	if (argc == 3 || !s_g->_vars["export"].empty())
 	{
-		int error = ParseLine(std::string("export ")+argv[2],*s_g, std::cout);
+		std::string d = s_g->_vars["export"].empty()?argv[2]:"default";
+		int error = ParseLine(std::string("export ")+d,*s_g, std::cout);
 		if (error != ErrNone)
 			std::cerr << "Export Error " << error << std::endl;
 		return error;
