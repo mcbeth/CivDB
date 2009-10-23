@@ -1,0 +1,19 @@
+Version 0.35:
+	-- added "set" command for game variables
+	-- export now stores the last used directory for default use
+Version 0.34:
+	-- Internal parser split
+Version 0.33:
+	-- Fix forgetting the ruleset and card type
+Version 0.32:
+	-- Add deck to the render output to help people without access to the web
+Version 0.31:
+	-- Render the discards so that there is an estimate of points turned in
+	-- We no longer use an uncaught exception to abort the program
+Version 0.3:
+	-- Added ruleset to cards.
+		-- If you need a CivProject30 ruleset, the card definition
+		requires an additional flag prior to the name detailing if the
+		card is 'additional'
+		-- Shuffling for 9 players is the only tested case
+	-- Added version output if the command is called without arguments
