@@ -521,6 +521,16 @@ int parseShuffleIn(const std::vector<std::string> &names, Game &g, std::ostream 
 }
 REG_PARSE(ShuffleIn,"deck type maxCount cardName");
 
+int parseRandom(const std::vector<std::string> &names, Game &g, std::ostream &out)
+{
+	if (names.size() != 2)
+		return parseHelpC(names, g, out);
+
+	out << CivRand(boost::lexical_cast<int>(names[1]))+1 << std::endl;
+	return ErrNone;
+}
+REG_PARSE(Random, "max");
+
 int parseReshuffle(const std::vector<std::string> &names, Game &g, std::ostream &out)
 {
 	if (names.size() != 1)
@@ -589,7 +599,7 @@ int parseList(const std::vector<std::string> &names, Game &g, std::ostream &out)
         }
 	if (boost::icontains(names[1],"calamities"))
 	{
-		typedef std::multimap<CardP, PowerP> RevMap;
+		typedef std::multimap<CardP, PowerP, CardCompare> RevMap;
 		RevMap calamities;
 		for(Powers::const_iterator i = g._powers.begin(); i != g._powers.end(); i++)
 		{
@@ -621,12 +631,15 @@ int parseCount(const std::vector<std::string> &names, Game &g, std::ostream &out
 		for(Powers::const_iterator i = g._powers.begin(); i != g._powers.end(); i++)
 		{
 			int count(0);
+			int smallCount(0);
 			for(Cards::const_iterator j = i->first->_hand.begin(); j != i->first->_hand.end(); j++)
 			{
 				if ((*j)->_type != Card::Normal)
 					count++;
+				if ((*j)->_type == Card::Minor)
+					smallCount++;
 			}
-			out << i->first->_name << '\t' << count << std::endl;
+			out << i->first->_name << '\t' << count-smallCount << '\t' << smallCount << std::endl;
 			bigCount+=count;
 		}
 		out << "Total:\t" << bigCount << std::endl;
