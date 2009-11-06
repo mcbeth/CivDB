@@ -18,7 +18,7 @@ namespace fs = boost::filesystem;
 #include <boost/scoped_ptr.hpp>
 #include <iostream>
 
-const std::string version("0.35");
+const std::string version("0.36");
 //typedef std::map<std::string, std::string> HelpText;
 
 boost::scoped_ptr<Game> s_g;

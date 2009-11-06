@@ -1,3 +1,5 @@
+Version 0.36:
+	-- added "value" command
 Version 0.35:
 	-- added "set" command for game variables
 	-- export now stores the last used directory for default use
