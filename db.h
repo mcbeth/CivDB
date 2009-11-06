@@ -1,18 +1,17 @@
 #ifndef DB_H__
 #define DB_H__
 
-#include <boost/serialization/vector.hpp>
-#include <boost/serialization/shared_ptr.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/set.hpp>
-#include <boost/serialization/deque.hpp>
-
 #include <boost/nondet_random.hpp>
 
 #include <boost/algorithm/string.hpp>
 
 #include <string>
 #include <queue>
+#include <bitset>
+#include <boost/array.hpp>
+#include <map>
+#include <set>
+#include <boost/shared_ptr.hpp>
 
 class Card
 {
@@ -38,18 +37,27 @@ class CivCard
 {
 	public:
 		std::string _name;
+		std::string _abbreviation;
 		std::string _image;
 		int _cost;
 		enum Group{
-			Craft = 1,
-			Science = 2,
-			Art = 4,
-			Civic = 8,
-			Religion = 16,
+			Craft,
+			Science,
+			Art,
+			Civic,
+			Religion,
+			GroupSize,
 		};
-		int _groups;
+		typedef boost::array<int, GroupSize> GroupCredits;
+		typedef std::bitset<GroupSize> Groups;
+
+		Groups _groups;
 		std::map<CivCardP, int> _cardCredits;
-		std::map<Group, int> _groupCredits;
+		GroupCredits _groupCredits;
+		CivCard():_groups(0),_cost(0)
+		{
+			std::fill(_groupCredits.begin(), _groupCredits.end(), 0);
+		}
 };
 
 class CivPortfolio
@@ -57,7 +65,11 @@ class CivPortfolio
 	public:
 		int Cost(CivCardP card);
 		std::set<CivCardP> _cards;
-		std::map<Group, int> _bonusCredits;
+		CivCard::GroupCredits _bonusCredits;
+		CivPortfolio()
+		{
+			std::fill(_bonusCredits.begin(), _bonusCredits.end(), 0);
+		}
 };
 
 typedef boost::shared_ptr<Card> CardP;
@@ -82,6 +94,7 @@ class Power
 	std::string _name;  
 	Hand _hand;
 	Hand _staging;
+	CivPortfolio _civCards;
 	
 	public:
 		void Merge();

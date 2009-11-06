@@ -3,6 +3,12 @@
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/serialization/bitset.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/shared_ptr.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/set.hpp>
+#include <boost/serialization/deque.hpp>
 
 #include <fstream>
 
@@ -31,13 +37,34 @@ namespace boost { namespace serialization {
 		else
 			c._supplement = false;
 	}
+
+	template<class Archive>
+	void serialize(Archive &ar, CivCard &c, unsigned int)
+	{
+		ar & make_nvp("name",c._name);
+		ar & make_nvp("abbreviation",c._abbreviation);
+		ar & make_nvp("image",c._image);
+		ar & make_nvp("cost",c._cost);
+		ar & make_nvp("groups", c._groups);
+		ar & make_nvp("cardCredits", c._cardCredits);
+		ar & make_nvp("groupCredits", c._groupCredits);
+	}
 	
+	template<class Archive>
+	void serialize(Archive &ar, CivPortfolio &c, unsigned int)
+	{
+		ar & make_nvp("cards",c._cards);
+		ar & make_nvp("bonus",c._bonusCredits);
+	}
+
 	template<class Archive>
 	void serialize(Archive &ar, Power &p, unsigned int version)
 	{
 		ar & make_nvp("name",p._name) & make_nvp("hand",p._hand);
 		if (version >= 1)
 			ar & make_nvp("staging",p._staging);
+		if (version >= 2)
+			ar & make_nvp("civCards",p._civCards);
 	}
 	
 	template <class Archive>
@@ -63,11 +90,10 @@ namespace boost { namespace serialization {
 		ar & make_nvp("discards", g._discards);
 		if (version >= 2)
 			ar & make_nvp("variables", g._vars);
-
 	}	
 }}
 
-BOOST_CLASS_VERSION(Power, 1)
+BOOST_CLASS_VERSION(Power, 2)
 BOOST_CLASS_VERSION(Card, 2)
 BOOST_CLASS_VERSION(Game, 2)
 
@@ -182,9 +208,17 @@ int CivPortfolio::Cost(CivCardP card)
 	int cost = card->_cost;
 	for(auto i = _cards.begin(); i != _cards.end(); i++)
 	{
-		auto c = i->_cardCredits.find(card);
-		if (c != i->_cardCredits.end())
+		auto c = (*i)->_cardCredits.find(card);
+		if (c != (*i)->_cardCredits.end())
 			cost -= c->second;
+		for(auto j = 0; j != CivCard::GroupSize; j++)
+		{
+			cost -= (*i)->_groupCredits[j]*card->_groups[j];
+		}
+	}
+	for(auto i = 0; i != CivCard::GroupSize; i++)
+	{
+		cost -= _bonusCredits[i]*card->_groups[i];
 	}
 	return cost;
 }
