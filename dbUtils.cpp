@@ -92,6 +92,15 @@ void MergeDiscards(Game &g, const Hand &toss)
 	}
 }
 
+bool ParseCivCards(const std::string &filename, Game &g)
+{
+	std::ifstream in(filename.c_str(), std::ios::binary)
+	while(in.good())
+	{
+			
+	}
+}
+
 bool ParseCardLists(const std::string &filename, Game &g)
 {
 	int lastRead = 0;
