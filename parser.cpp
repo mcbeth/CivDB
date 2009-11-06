@@ -546,6 +546,31 @@ int parseReshuffle(const std::vector<std::string> &names, Game &g, std::ostream 
 }
 REG_PARSE(Reshuffle,"");
 
+int parseValue(const std::vector<std::string> &names, Game &g, std::ostream &out)
+{
+	if (names.size() < 2)
+		return parseHelpC(names, g, out);
+
+	Hand h;
+	int tokens = 0;
+	for(auto i = names.begin()+1; i != names.end(); i++)
+	{
+		CardP c = g.FindCard(*i);
+		if (c)
+			h.insert(c);
+		else if (boost::algorithm::all(*i, boost::algorithm::is_digit()))
+			tokens += boost::lexical_cast<int>(*i);
+		else
+			return ErrUnableToParse;
+	}
+
+	int v = ValueHand(h);
+	RenderHand(out, h);
+	out << v << '+' << tokens << " = " << v+tokens << std::endl;
+	return ErrNone;
+}
+REG_PARSE(Value,"card/token# [card/token#] ...");
+
 int parseList(const std::vector<std::string> &names, Game &g, std::ostream &out)
 {
 	if (names.size() != 2)

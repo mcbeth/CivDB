@@ -406,6 +406,11 @@ char **completeTrade(const std::vector<std::string> &data, const char *text, int
 	return NULL;
 }
 
+char **completeValue(const std::vector<std::string> &data, const char *text, int)
+{
+	return rl_completion_matches(text, cardFill);
+}
+
 char **completeShuffleIn(const std::vector<std::string> &data, const char *text, int depth)
 {
 	switch(depth)
@@ -469,6 +474,7 @@ REG_COMP(Quit, completeNULL);
 REG_COMP(Abort, completeNULL);
 REG_COMP(Trade, completeTrade);
 REG_COMP(Reshuffle, completeNULL);
+REG_COMP(Value, completeValue);
 REG_COMP(List, completeList);
 REG_COMP(Count, completeList);
 REG_COMP(Give, completeGive);
