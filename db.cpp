@@ -175,6 +175,20 @@ CardP Game::FindCard(const std::string &cardName) const
 	return CardP();
 }
 
+int CivPortfolio::Cost(CivCardP card)
+{
+	if (_cards.find(card) != _cards.end())
+		return 0;
+	int cost = card->_cost;
+	for(auto i = _cards.begin(); i != _cards.end(); i++)
+	{
+		auto c = i->_cardCredits.find(card);
+		if (c != i->_cardCredits.end())
+			cost -= c->second;
+	}
+	return cost;
+}
+
 int CivRand(int n)
 {
 	static boost::random_device _dev;

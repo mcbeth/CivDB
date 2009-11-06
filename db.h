@@ -32,6 +32,34 @@ class Card
 	std::string _image;
 };
 
+class CivCard;
+typedef boost::shared_ptr<CivCard> CivCardP;
+class CivCard
+{
+	public:
+		std::string _name;
+		std::string _image;
+		int _cost;
+		enum Group{
+			Craft = 1,
+			Science = 2,
+			Art = 4,
+			Civic = 8,
+			Religion = 16,
+		};
+		int _groups;
+		std::map<CivCardP, int> _cardCredits;
+		std::map<Group, int> _groupCredits;
+};
+
+class CivPortfolio
+{
+	public:
+		int Cost(CivCardP card);
+		std::set<CivCardP> _cards;
+		std::map<Group, int> _bonusCredits;
+};
+
 typedef boost::shared_ptr<Card> CardP;
 
 class CardCompare
