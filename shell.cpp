@@ -4,7 +4,7 @@
 #include "factory.h"
 
 #include <boost/algorithm/string.hpp>
-#include <boost/serialization/singleton.hpp>
+#include <boost/serialization/singleton.hpp> // has nothing to do with s11n
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
@@ -16,6 +16,7 @@ namespace fs = boost::filesystem;
 #include <readline/history.h>
 
 #include <boost/scoped_ptr.hpp>
+#include <iostream>
 
 const std::string version("0.35");
 //typedef std::map<std::string, std::string> HelpText;
