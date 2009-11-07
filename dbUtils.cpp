@@ -5,16 +5,17 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/foreach.hpp>
 
 int ValueHand(const Hand &hand)
 {
 	int value = 0;
 	CardP currentCard;
-	for(Hand::const_iterator i = hand.begin(); i != hand.end(); i++)
+	BOOST_FOREACH(auto i, hand)
 	{
-		if (currentCard == (*i))
+		if (currentCard == i)
 			continue;
-		currentCard = *i;
+		currentCard = i;
 		const int count = hand.count(currentCard);
 		const int deck = currentCard->_deck;
 		if (currentCard->_type == Card::Normal)
@@ -31,11 +32,11 @@ void RenderHand(std::ostream &out, const Hand &hand)
 	}
 	
 	CardP currentCard;
-	for(Hand::const_iterator i = hand.begin(); i != hand.end(); i++)
+	BOOST_FOREACH(auto i, hand)
 	{
-		if (currentCard == (*i))
+		if (currentCard == i)
 			continue;
-		currentCard = *i;
+		currentCard = i;
 		const int count = hand.count(currentCard);
 		const int deck  = currentCard->_deck;
 		out << count << "x " << currentCard->_name << " (" << deck <<")"<< std::endl;
@@ -53,9 +54,9 @@ void RenderDeck(std::ostream &out, const Deck &deck)
 		return;
 	}
 	
-	for(Deck::const_iterator i = deck.begin(); i != deck.end(); i++)
+	BOOST_FOREACH(auto card, deck)
 	{
-		out << (*i)->_name << std::endl;
+		out << card->_name << std::endl;
 	}
 }
 
@@ -66,9 +67,9 @@ void MergeHands(Hand &target, const Hand &src)
 
 bool RemoveHand(Hand &src, const Hand &deleted)
 {
-	for(Hand::const_iterator i = deleted.begin(); i != deleted.end(); i++)
+	BOOST_FOREACH(auto card, deleted)
 	{
-		Hand::iterator v = src.find(*i);
+		Hand::iterator v = src.find(card);
 		if (v == src.end())
 			return false;
 		src.erase(v);
@@ -86,9 +87,9 @@ bool Stage(Hand &src, Hand &dest, const Hand &cards)
 
 void MergeDiscards(Game &g, const Hand &toss)
 {
-	for(Hand::const_iterator i = toss.begin(); i != toss.end(); i++)
+	BOOST_FOREACH(auto card, toss)
 	{
-		g._discards[(*i)->_deck].insert(*i);
+		g._discards[card->_deck].insert(card);
 	}
 }
 
@@ -147,12 +148,12 @@ void ShuffleIn(Deck &d, Hand &hand)
 	Deck shuffled;
 	Deck unshuffled;
 
-	for(Hand::const_iterator i = hand.begin(); i != hand.end(); i++)
+	BOOST_FOREACH(auto i, hand)
 	{
-		if ((*i)->_type == Card::NonTradable)
-			unshuffled.push_back(*i);
+		if (i->_type == Card::NonTradable)
+			unshuffled.push_back(i);
 		else
-			shuffled.push_back(*i);
+			shuffled.push_back(i);
 	}
 
 	std::random_shuffle(shuffled.begin(), shuffled.end(), CivRand);
@@ -167,34 +168,34 @@ bool CreateDecksCivProject30(Game &g)
 	g._decks.resize(10);
 	g._discards.resize(10);
 
-	for(int i = 1; i < g._decks.size(); i++)
+	for(int i = 1; i < g._decks.size(); ++i)
 	{
 		std::vector<CardP> holding;
 		std::vector<CardP> supplement;
 		std::vector<CardP> nonTrade;
 		g._decks[i].clear();
-		for(Cards::const_iterator j = g._cards.begin(); j != g._cards.end(); j++)
+		BOOST_FOREACH(auto j, g._cards)
 		{
-			if ((*j)->_deck != i)
+			if (j->_deck != i)
 				continue;
-			if ((*j)->_supplement)
+			if (j->_supplement)
 			{
-				supplement.insert(supplement.end(), (*j)->_maxCount, *j);
-				continue;
-			}
-			if ((*j)->_type == Card::NonTradable)
-			{
-				nonTrade.push_back(*j);
+				supplement.insert(supplement.end(), j->_maxCount, j);
 				continue;
 			}
-			if ((*j)->_type == Card::Tradable)
+			if (j->_type == Card::NonTradable)
 			{
-				g._decks[i].insert(g._decks[i].end(), *j);
+				nonTrade.push_back(j);
 				continue;
 			}
-			if ((*j)->_type == Card::Normal || (*j)->_type == Card::Minor)
+			if (j->_type == Card::Tradable)
 			{
-				holding.insert(holding.end(), (*j)->_maxCount, *j);
+				g._decks[i].insert(g._decks[i].end(), j);
+				continue;
+			}
+			if (j->_type == Card::Normal || j->_type == Card::Minor)
+			{
+				holding.insert(holding.end(), j->_maxCount, j);
 			}
 		}
 		std::random_shuffle(holding.begin(), holding.end(), CivRand);
@@ -213,43 +214,44 @@ bool CreateDecksAdvCiv(Game &g)
 	g._decks.resize(10);
 	g._discards.resize(10);
 	
-	for(int i =1; i < g._decks.size(); i++)
+	for(int i = 1; i < g._decks.size(); ++i)
 	{
 		holding.clear();
 
-		for(Cards::const_iterator j = g._cards.begin(); j != g._cards.end(); j++)
+		BOOST_FOREACH(auto card, g._cards)
 		{
-			if ((*j)->_deck == i && ((*j)->_type == Card::Normal || (*j)->_type == Card::Minor))
+			if (card->_deck == i && (card->_type == Card::Normal || card->_type == Card::Minor))
 
 			{
-				holding.insert(holding.end(), (*j)->_maxCount, *j);
+				holding.insert(holding.end(), card->_maxCount, card);
 			}
 		}
 
 		std::random_shuffle(holding.begin(), holding.end(), CivRand);
 		
-		for(int j = 0; j < numPlayers && holding.size(); j++)
+		for(int j = 0; j < numPlayers && holding.size(); ++j)
 		{
 			CardP b = holding.back();
 			g._decks[i].push_back(b);
 			holding.pop_back();
 		}
 		
-		for(Cards::const_iterator j = g._cards.begin(); j != g._cards.end(); j++)
+		BOOST_FOREACH(auto card, g._cards)
 		{
-			if ((*j)->_deck == i && ((*j)->_type == Card::Tradable))
+			if (card->_deck == i && (card->_type == Card::Tradable))
 			{
-				holding.push_back(*j);
+				holding.push_back(card);
 			}
 		}
 		
 		std::random_shuffle(holding.begin(), holding.end(), CivRand);
 		
 		for(Cards::const_iterator j = g._cards.begin(); j != g._cards.end(); j++)
+		BOOST_FOREACH(auto card, g._cards)
 		{
-			if ((*j)->_deck == i && (*j)->_type == Card::NonTradable)
+			if (card->_deck == i && card->_type == Card::NonTradable)
 			{
-				holding.push_back(*j);
+				holding.push_back(card);
 			}			
 		}
 	
@@ -303,7 +305,7 @@ bool CreateGame(const std::string &cards, const std::string &powers, const std::
 
 bool FillHand(const Game &g, const std::vector<std::string> &cardNames, Hand &hand)
 {
-	for(int i = 0; i < cardNames.size(); i++)
+	for(int i = 0; i < cardNames.size(); ++i)
 	{
 		CardP c = g.FindCard(cardNames[i]);
 		if (!c)
@@ -317,19 +319,13 @@ bool FillHand(const Game &g, const std::vector<std::string> &cardNames, Hand &ha
 
 void FillCalamities(const Game &g, const Power &p, Hand &hand)
 {
-	for(Hand::const_iterator i = p._hand.begin(); i != p._hand.end(); i++)
+	BOOST_FOREACH(auto card, p._hand)
 	{
-		if ((*i)->_type != Card::Normal)
+		if (card->_type != Card::Normal)
 		{
-			hand.insert(*i);
+			hand.insert(card);
 		}
 	}
-	
-//	for(Hand::const_iterator i = hand.begin(); i != hand.end(); i++)
-//	{
-//		std::cerr << (*i)->_name << '\t';
-//	}
-//	std::cerr << std::endl;	
 }
 
 void PickCard(Game &g, Hand &hand, int i)
@@ -342,7 +338,7 @@ void PickCard(Game &g, Hand &hand, int i)
 
 void DrawCards(Game &g, Hand &hand, int numCards)
 {
-	for(int i = 1; i <= numCards; i++)
+	for(int i = 1; i <= numCards; ++i)
 	{
 		PickCard(g, hand, i);
 	}

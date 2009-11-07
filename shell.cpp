@@ -9,6 +9,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/foreach.hpp>
 
 namespace fs = boost::filesystem;
 
@@ -62,7 +63,7 @@ char *fillFromArray(const std::string &text, int state, const char **list, const
 {
 	int skip = state;
 
-	for(int i = 0; i < numValues; i++)
+	for(int i = 0; i < numValues; ++i)
 	{
 		char *value = NULL;
 		if (value = fillBuffer(list[i], text, skip))
@@ -77,10 +78,10 @@ char *fillFromComplete(const char *text, int state)
 
 	const Completer &c = CompleteFactory::get_const_instance();
 	
-	for(auto i = c.begin(); i != c.end(); i++)
+	BOOST_FOREACH(auto i, c)
 	{
 		char *value = NULL;
-		if (value = fillBuffer(i->first, text, skip))
+		if (value = fillBuffer(i.first, text, skip))
 			return value;
 	}
 
@@ -91,10 +92,10 @@ char *countryFill(const char *text, int state)
 {
 	const int matchLen = std::strlen(text);
 	
-	for(Powers::const_iterator i = s_g->_powers.begin(); i != s_g->_powers.end(); i++)
+	BOOST_FOREACH(auto i, s_g->_powers)
 	{
 		char *value = NULL;
-		if (value = fillBuffer(i->first->_name, text, state))
+		if (value = fillBuffer(i.first->_name, text, state))
 			return value;
 	}
 	return NULL;
@@ -102,10 +103,10 @@ char *countryFill(const char *text, int state)
 
 char *setFill(const char *text, int state)
 {
-	for(auto i = s_g->_vars.begin(); i != s_g->_vars.end(); ++i)
+	BOOST_FOREACH(auto i, s_g->_vars)
 	{
 		char *value = NULL;
-		if (value = fillBuffer(i->first, text, state))
+		if (value = fillBuffer(i.first, text, state))
 			return value;
 	}
 	return NULL;
@@ -115,7 +116,7 @@ char *typeFill(const char *text, int state)
 {
 	const char *numbers[] = {"0","-1","-2","-3"};
 	const int len = sizeof(numbers)/sizeof(const char *);
-	for(int i =0 ; i < len; i++)
+	for(int i =0 ; i < len; ++i)
 	{
 		char *value = NULL;
 		if (value = fillBuffer(numbers[i], text, state))
@@ -130,7 +131,7 @@ int countMatches(const std::string &text, const std::string &match)
 	int pos = text.find(match);
 	while (pos != std::string::npos)
 	{
-		matches++;
+		++matches;
 		pos = text.find(match, pos+1);
 	}
 
@@ -144,19 +145,19 @@ char *cardFill(const char *text, int state)
 
 	if (power != s_g->_powers.end())
 	{
-		for(Hand::const_iterator i = power->first->_hand.begin(); i != power->first->_hand.end(); i++)
+		BOOST_FOREACH(auto i, power->first->_hand)
 		{
-			if (char *value = fillBuffer((*i)->_name, text, state))
+			if (char *value = fillBuffer(i->_name, text, state))
 				return value;
 		}
 	} else
 	{
-		for(Cards::const_iterator i = s_g->_cards.begin(); i != s_g->_cards.end(); i++)
+		BOOST_FOREACH(auto i, s_g->_cards)
 		{
-			if (g_currentDeck && (*i)->_deck != g_currentDeck)
+			if (g_currentDeck && i->_deck != g_currentDeck)
 				continue;
 			char *value = NULL;
-			if (value = fillBuffer((*i)->_name, text, state))
+			if (value = fillBuffer(i->_name, text, state))
 				return value;
 		}
 	}
@@ -167,7 +168,7 @@ char *numberFill(const char *text, int state)
 {
 	const char *numbers[] = {"1","2","3","4","5","6","7","8","9"};
 	const int len = sizeof(numbers)/sizeof(const char *);
-	for(int i =0 ; i < len; i++)
+	for(int i =0 ; i < len; ++i)
 	{
 		char *value = NULL;
 		if (value = fillBuffer(numbers[i], text, state))
@@ -179,7 +180,7 @@ char *numberFill(const char *text, int state)
 char *listFill(const char *text, int state)
 {
 	const int len = sizeof(objectList)/sizeof(const char *);
-	for(int i = 0; i < len; i++)
+	for(int i = 0; i < len; ++i)
 	{
 		char *value = NULL;
 		if (value = fillBuffer(objectList[i], text, state))
@@ -194,7 +195,7 @@ char *augmentedHandFill(const char *text, int state)
 	static int visits = -1;
 	char *value = NULL;
 	
-	visits++;
+	++visits;
 	
 	if (value = countryFill(text, state))
 		return value;
@@ -215,7 +216,7 @@ char *augmentedTradeFill(const char *text, int state)
 	static int visits = -1;
 	char *value = NULL;
 
-	visits++;
+	++visits;
 
 	if (value = countryFill(text, state))
 		return value;
@@ -384,7 +385,7 @@ char **completeTrade(const std::vector<std::string> &data, const char *text, int
 		default:
 		{
 			Powers::const_iterator p2 = s_g->_powers.end();
-			for(int i = 5; i < depth; i++)
+			for(int i = 5; i < depth; ++i)
 			{
 				p2 = s_g->FindPower(data[i]);
 				if (p2 != s_g->_powers.end())

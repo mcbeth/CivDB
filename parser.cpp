@@ -208,7 +208,7 @@ int parseDraw(const std::vector<std::string> &names, Game &g, std::ostream &out)
 
 	int numCards = boost::lexical_cast<int>(names[2]);
 	std::vector<int> picks(names.size()-3);
-	for(int i = 0; i < picks.size(); i++)
+	for(int i = 0; i < picks.size(); ++i)
 	{
 		picks[i] = boost::lexical_cast<int>(names[3+i]);
 	}
@@ -229,9 +229,9 @@ int parseDraw(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	
 	Hand temp2;
 	out << std::endl << "Bought:" << std::endl;
-	for(int i = 0; i < picks.size(); i++)
+	BOOST_FOREACH(auto card, picks)
 	{
-		PickCard(g, temp2, picks[i]);
+		PickCard(g, temp2, card);
 	}
 	RenderHand(out, temp2);
 	
@@ -250,7 +250,7 @@ int parseDump(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	fs::path base(names[1]);
 	fs::ofstream cardList(base/"cardList", std::ios::binary);
 	fs::ofstream powerList(base/"powerList", std::ios::binary);
-	for(int i = 0; i < g._decks.size(); i++)
+	for(int i = 0; i < g._decks.size(); ++i)
 	{
 		BOOST_FOREACH(auto j, g._cards)
 		{
@@ -328,7 +328,7 @@ int parseHeld(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	}
 	if (boost::icontains(names[1],"discard"))
 	{
-		for(int i = 1; i < g._discards.size(); i++)
+		for(int i = 1; i < g._discards.size(); ++i)
 		{
 			out << i << ": ";
 			RenderHand(out, g._discards[i]);
@@ -384,7 +384,7 @@ int parseTrade(const std::vector<std::string> &names, Game &g, std::ostream &out
 	}
 
 	int breakPoint = 0;
-	for(int i = 5; i < names.size()-3; i++)
+	for(int i = 5; i < names.size()-3; ++i)
 	{
 		if ((power2 = g.FindPower(names[i])) != g._powers.end())
 		{
@@ -397,7 +397,7 @@ int parseTrade(const std::vector<std::string> &names, Game &g, std::ostream &out
 		return ErrPowerNotFound;
 
 	Hand left, right;
-	for(int i = 2; i < breakPoint; i++)
+	for(int i = 2; i < breakPoint; ++i)
 	{
 		CardP card = g.FindCard(names[i]);
 		if (!card)
@@ -405,7 +405,7 @@ int parseTrade(const std::vector<std::string> &names, Game &g, std::ostream &out
 		left.insert(card);
 	}
 
-	for(int i = breakPoint+1; i < names.size(); i++)
+	for(int i = breakPoint+1; i < names.size(); ++i)
 	{
 		CardP card = g.FindCard(names[i]);
 		if (!card)
@@ -511,7 +511,7 @@ int parseShuffleIn(const std::vector<std::string> &names, Game &g, std::ostream 
 	g._cards.insert(card);
 
 	Deck &deck = g._decks[card->_deck];
-	for(int i = 0; i < card->_maxCount; i++)
+	for(int i = 0; i < card->_maxCount; ++i)
 	{
 		int maxCount = g._decks[card->_deck].size();
 		int location = maxCount?CivRand(maxCount):0;
@@ -538,7 +538,7 @@ int parseReshuffle(const std::vector<std::string> &names, Game &g, std::ostream 
 	if (names.size() != 1)
 		return parseHelpC(names, g, out);
 
-	for(int i = 0; i < g._discards.size(); i++)
+	for(int i = 0; i < g._discards.size(); ++i)
 	{
 		ShuffleIn(g._decks[i], g._discards[i]);
 		g._discards[i].clear();
@@ -555,7 +555,7 @@ int parseValue(const std::vector<std::string> &names, Game &g, std::ostream &out
 
 	Hand h;
 	int tokens = 0;
-	for(auto i = names.begin()+1; i != names.end(); i++)
+	for(auto i = names.begin()+1; i != names.end(); ++i)
 	{
 		CardP c = g.FindCard(*i);
 		if (c)
@@ -604,7 +604,7 @@ int parseList(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	}
 	if (boost::iequals(names[1],"decks"))
 	{
-		for(int i = 1; i < g._decks.size(); i++)
+		for(int i = 1; i < g._decks.size(); ++i)
 		{
 			out << i << '\t';
 			BOOST_FOREACH(auto j, g._decks[i])
@@ -617,7 +617,7 @@ int parseList(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	}
 	if (boost::icontains(names[1],"discard"))
 	{
-		for(int i = 1; i < g._discards.size(); i++)
+		for(int i = 1; i < g._discards.size(); ++i)
 	        {
 		        out << i << ": ";
 	                RenderHand(out, g._discards[i]);
@@ -662,9 +662,9 @@ int parseCount(const std::vector<std::string> &names, Game &g, std::ostream &out
 			BOOST_FOREACH(auto j, i.first->_hand)
 			{
 				if (j->_type != Card::Normal)
-					count++;
+					++count;
 				if (j->_type == Card::Minor)
-					smallCount++;
+					++smallCount;
 			}
 			out << i.first->_name << '\t' << count-smallCount << '\t' << smallCount << std::endl;
 			bigCount+=count;
@@ -689,7 +689,7 @@ int parseCount(const std::vector<std::string> &names, Game &g, std::ostream &out
 		BOOST_FOREACH(auto i, g._powers)
 		{
 			if (i.second)
-				count++;
+				++count;
 		}
 		out << "Assigned Player: " << count << std::endl;
 		return ErrNone;
@@ -697,7 +697,7 @@ int parseCount(const std::vector<std::string> &names, Game &g, std::ostream &out
 	if (boost::iequals(names[1],"decks"))
 	{
 		int bigCount(0);
-		for(int i = 1; i < g._decks.size(); i++)
+		for(int i = 1; i < g._decks.size(); ++i)
 		{
 			out << i << '\t' << g._decks[i].size() << std::endl;
 			bigCount += g._decks[i].size();
@@ -708,7 +708,7 @@ int parseCount(const std::vector<std::string> &names, Game &g, std::ostream &out
 	if (boost::iequals(names[1],"discards"))
 	{
 		int bigCount(0);
-		for(int i = 1; i < g._discards.size(); i++)
+		for(int i = 1; i < g._discards.size(); ++i)
 		{
 			out << i << '\t' << g._discards[i].size() << std::endl;
 			bigCount += g._discards[i].size();
@@ -732,9 +732,9 @@ bool splitLine(const std::string &line, std::vector<std::string> &target)
 	if (!parse(trimmed.c_str(), sentence).full)
 		return false;
 	
-	for(int i = 0; i < target.size(); i++)
+	BOOST_FOREACH(auto word, target)
 	{
-		boost::replace_all(target[i], "\\ ", " ");
+		boost::replace_all(word, "\\ ", " ");
 	}
 	
 	return true;
