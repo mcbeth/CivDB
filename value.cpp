@@ -1,20 +1,22 @@
 #include "dbUtils.h"
+#include <boost/foreach.hpp>
+#include <iostream>
 
 int main(int argc, char *argv[])
 {
 	const Game g(argv[1],true);
 	const Game ga(argv[2],true);
 
-	for(Powers::const_iterator i = g._powers.begin(); i != g._powers.end(); i++)
+	BOOST_FOREACH(auto power, g._powers)
 	{
-		std::cout << i->first->_name 
-			<< '\t' << ValueHand(i->first->_hand) << '\t';
+		std::cout << power.first->_name 
+			<< '\t' << ValueHand(power.first->_hand) << '\t';
 
-		for(Powers::const_iterator j = ga._powers.begin(); i != ga._powers.end(); j++)
+		BOOST_FOREACH(auto p2, ga._powers)
 		{
-			if (i->first->_name == j->first->_name)
+			if (power.first->_name == p2.first->_name)
 			{
-				std::cout << ValueHand(j->first->_hand);
+				std::cout << ValueHand(p2.first->_hand);
 				break;
 			}
 		}

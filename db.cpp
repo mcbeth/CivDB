@@ -10,6 +10,8 @@
 #include <boost/serialization/set.hpp>
 #include <boost/serialization/deque.hpp>
 
+#include <boost/foreach.hpp>
+
 #include <fstream>
 
 
@@ -155,9 +157,9 @@ void Game::Load(const std::string &filename)
 
 bool Power::Has(const Hand &cards) const
 {
-	for(Hand::const_iterator i = _hand.begin(); i != _hand.end(); i++)
+	BOOST_FOREACH(auto i, _hand)
 	{
-		if (cards.count(*i) > _hand.count(*i))
+		if (cards.count(i) > _hand.count(i))
 			return false;
 	}
 	
@@ -172,7 +174,7 @@ void Power::Merge()
 
 Powers::const_iterator Game::FindPower(const std::string &powerName) const
 {
-	for(Powers::const_iterator i = _powers.begin(); i != _powers.end(); i++)
+	for(auto i = _powers.begin(); i != _powers.end(); ++i)
 	{
 		if (boost::iequals(i->first->_name,powerName))
 			return i;
@@ -182,7 +184,7 @@ Powers::const_iterator Game::FindPower(const std::string &powerName) const
 
 Powers::iterator Game::FindPower(const std::string &powerName)
 {
-	for(Powers::iterator i = _powers.begin(); i != _powers.end(); i++)
+	for(auto i = _powers.begin(); i != _powers.end(); ++i)
 	{
 		if (boost::iequals(i->first->_name,powerName))
 			return i;
@@ -192,10 +194,10 @@ Powers::iterator Game::FindPower(const std::string &powerName)
 
 CardP Game::FindCard(const std::string &cardName) const
 {
-	for(Cards::iterator i = _cards.begin(); i != _cards.end(); i++)
+	BOOST_FOREACH(auto i, _cards)
 	{
-		if (boost::iequals((*i)->_name, cardName))
-			return *i;
+		if (boost::iequals(i->_name, cardName))
+			return i;
 	}
 	
 	return CardP();
