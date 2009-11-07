@@ -23,6 +23,7 @@ int ValueHand(const Hand &hand)
 	}
 	return value;
 }
+
 void RenderHand(std::ostream &out, const Hand &hand)
 {
 	if (hand.size() == 0)
@@ -93,13 +94,77 @@ void MergeDiscards(Game &g, const Hand &toss)
 	}
 }
 
+void ShowCard(CivCardP c)
+{
+	const std::string groups[] = {"Craft", "Science", "Art", "Civic", "Religion"};
+	std::cout << c->_cost << '\t' << c->_name << " (" << c->_abbreviation << ')' << '\t';
+	for(int i = 0; i < CivCard::GroupSize; i++)
+	{
+		if (c->_groups[i])
+			std::cout << groups[i] << '\t';
+	}
+	for(int i = 0; i < CivCard::GroupSize; i++)
+	{
+		if (c->_groupCredits[i] > 0)
+			std::cout << groups[i] << " (" << c->_groupCredits[i] << ')' << '\t';
+	}
+	BOOST_FOREACH(auto i, c->_cardCredits)
+	{
+		std::cout << i.first->_name << " (" << i.second << ")" << '\t';
+	}
+	std::cout << std::endl;
+}
+
 bool ParseCivCards(const std::string &filename, Game &g)
 {
-	std::ifstream in(filename.c_str(), std::ios::binary)
+	std::cout << "Parsing " << filename << std::endl;
+	std::ifstream in(filename.c_str(), std::ios::binary);
+	std::string line;
+	std::getline(in, line);
+	std::map<CivCardP, std::pair<std::string, int>> bonus;
 	while(in.good())
 	{
-			
+		std::vector<std::string> values;
+		std::getline(in, line);
+		if (!in.good())
+				break;
+
+		boost::algorithm::split(values, line, boost::algorithm::is_any_of("\t"));
+		
+		CivCardP card(new CivCard);
+
+		card->_cost = boost::lexical_cast<int>(values[0]);
+		card->_name = values[1];
+		for(int i = 2; i < 7; i++)
+		{
+			card->_groups[i-2] = values[i].size()>0;
+		}
+		for(int i = 7; i < 12; i++)
+		{
+			if (values[i].size())
+				card->_groupCredits[i-7] = boost::lexical_cast<int>(values[i]);
+			else
+				card->_groupCredits[i-7] = 0;
+		}
+		if (values[12].size())
+		{
+			bonus[card] = std::make_pair(values[12],boost::lexical_cast<int>(values[13]));
+		}
+		card->_abbreviation = values[14];
+		card->_image = "";
+		g._civcards.insert(card);
 	}
+	BOOST_FOREACH(auto card, bonus)
+	{
+		BOOST_FOREACH(auto match, g._civcards)
+		{
+			if (card.second.first == match->_abbreviation)
+				card.first->_cardCredits[match] = card.second.second;
+		}
+	}
+
+	BOOST_FOREACH(auto card, g._civcards)
+		ShowCard(card);
 }
 
 bool ParseCardLists(const std::string &filename, Game &g)

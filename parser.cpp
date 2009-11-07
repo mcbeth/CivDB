@@ -50,6 +50,34 @@ int parseHelpC(const std::vector<std::string> &names, Game &g, std::ostream &out
 	return ErrNone;
 }
 
+int parseImport(const std::vector<std::string> &names, Game &g, std::ostream &out)
+{
+	std::cout << names.size() << std::endl;
+	if (names.size() != 3)
+		return parseHelpC(names, g, out);
+
+	std::cout << names[2] << std::endl;
+	if (ParseCivCards(names[2], g))
+		return ErrNone;
+
+	return ErrUnableToParse;
+}
+REG_PARSE(Import, "Civ file");
+
+int parseCost(const std::vector<std::string> &names, Game &g, std::ostream &out)
+{
+	if (names.size() != 2)
+		return parseHelpC(names, g, out);
+
+	auto card = g.FindCivCard(names[1]);
+	if (!card)
+		return ErrUnableToParse;
+	ShowCard(card);
+	return ErrNone;
+	
+}
+REG_PARSE(Cost, "CivCard");
+
 int parseCreate(const std::vector<std::string> &names, Game &g, std::ostream &out)
 {
 	if (names.size() != 4)
@@ -726,7 +754,7 @@ bool splitLine(const std::string &line, std::vector<std::string> &target)
 	const std::string &trimmed = boost::trim_copy(line);
 	target.clear();
 
-	rule<> word = (+(alnum_p | '~' | ':' | '_' | '(' | ')' | "\\ " | '.' | '/' | '@'))[push_back_a(target)];
+	rule<> word = (+(alnum_p | '-' | '~' | ':' | '_' | '(' | ')' | "\\ " | '.' | '/' | '@'))[push_back_a(target)];
 	rule<> sentence = *(*space_p >> word);
 	
 	if (!parse(trimmed.c_str(), sentence).full)

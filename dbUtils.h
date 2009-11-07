@@ -32,4 +32,7 @@ void FillCalamities(const Game &g, const Power &p, Hand &hand);
 void PickCard(Game &g, Hand &hand, int i);
 void DrawCards(Game &g, Hand &hand, int numCards);
 
+bool ParseCivCards(const std::string &filename, Game &g);
+void ShowCard(CivCardP c);
+
 #endif

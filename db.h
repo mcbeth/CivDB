@@ -31,6 +31,22 @@ class Card
 	std::string _image;
 };
 
+typedef boost::shared_ptr<Card> CardP;
+
+class CardCompare
+{
+	public:
+	bool operator()(const CardP &lhs, const CardP &rhs) const;
+};
+
+typedef std::set<CardP,CardCompare> Cards;
+typedef std::multiset<CardP,CardCompare> Hand;
+typedef std::vector<Hand> Hands;
+typedef boost::shared_ptr<Hand> HandP;
+
+typedef std::deque<CardP> Deck;
+typedef boost::shared_ptr<Deck> DeckP;
+
 class CivCard;
 typedef boost::shared_ptr<CivCard> CivCardP;
 class CivCard
@@ -72,21 +88,12 @@ class CivPortfolio
 		}
 };
 
-typedef boost::shared_ptr<Card> CardP;
-
-class CardCompare
+class CivCardCompare
 {
 	public:
-	bool operator()(const CardP &lhs, const CardP &rhs) const;
+	bool operator()(const CivCardP &lhs, const CivCardP &rhs) const;
 };
-
-typedef std::set<CardP,CardCompare> Cards;
-typedef std::multiset<CardP,CardCompare> Hand;
-typedef std::vector<Hand> Hands;
-typedef boost::shared_ptr<Hand> HandP;
-
-typedef std::deque<CardP> Deck;
-typedef boost::shared_ptr<Deck> DeckP;
+typedef std::set<CivCardP, CivCardCompare> CivCards;
 
 class Power
 {
@@ -137,6 +144,7 @@ class Game
 	Decks _decks;
 	Hands _discards;
 	Cards _cards;
+	CivCards _civcards;
 	std::queue<std::string> _queue;
 	Variables _vars;
 	
@@ -144,6 +152,7 @@ class Game
 	Powers::const_iterator FindPower(const std::string &) const;
 
 	CardP FindCard(const std::string &) const;
+	CivCardP FindCivCard(const std::string &) const;
 	void Abandon();
 	
 	private:

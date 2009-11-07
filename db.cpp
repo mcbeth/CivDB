@@ -128,6 +128,11 @@ bool CardCompare::operator()(const CardP &lhs, const CardP &rhs) const
 	return false;
 }
 
+bool CivCardCompare::operator()(const CivCardP &lhs, const CivCardP &rhs) const
+{
+	return lhs->_name < rhs->_name;
+}
+
 void Game::Abandon()
 {
 	_abandon = true;
@@ -201,6 +206,17 @@ CardP Game::FindCard(const std::string &cardName) const
 	}
 	
 	return CardP();
+}
+
+CivCardP Game::FindCivCard(const std::string &cardName) const
+{
+	BOOST_FOREACH(auto i, _civcards)
+	{
+		if (boost::iequals(i->_name, cardName))
+			return i;
+	}
+
+	return CivCardP();
 }
 
 int CivPortfolio::Cost(CivCardP card)
