@@ -13,6 +13,7 @@ namespace fs = boost::filesystem;
 
 #include <boost/function.hpp>
 #include <boost/serialization/singleton.hpp>
+#include <boost/foreach.hpp>
 #include <iostream>
 #include <vector>
 
@@ -104,9 +105,10 @@ int parseGive(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	from->first->Merge(); to->first->Merge();
 
 	out << from->first->_name << " Gives: \n";
-	for(Hand::const_iterator i = left.begin(); i != left.end(); i++)
+
+	BOOST_FOREACH(CardP i, left)
 	{
-		out << (*i)->_name << ',';
+		out << i->_name << ',';
 	}
 	std:: cout << std::endl << std::endl;
 	
@@ -127,9 +129,9 @@ int parseSet(const std::vector<std::string> &names, Game &g, std::ostream &out)
 
 	if (names.size() == 1)
 	{
-		for(auto i = g._vars.begin(); i != g._vars.end(); ++i)
+		BOOST_FOREACH(auto i, g._vars)
 		{
-			out << i->first << ": '" << i->second << "'" << std::endl;	
+			out << i.first << ": '" << i.second << "'" << std::endl;	
 		}
 		return ErrNone;
 	}
@@ -250,24 +252,24 @@ int parseDump(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	fs::ofstream powerList(base/"powerList", std::ios::binary);
 	for(int i = 0; i < g._decks.size(); i++)
 	{
-		for(Cards::const_iterator j = g._cards.begin(); j != g._cards.end(); j++)
+		BOOST_FOREACH(auto j, g._cards)
 		{
-			if (i == (*j)->_deck && (*j)->_type == Card::Normal)
-				cardList << i << '\t' << (*j)->_maxCount << '\t' << (*j)->_name << std::endl;
+			if (i == j->_deck && j->_type == Card::Normal)
+				cardList << i << '\t' << j->_maxCount << '\t' << j->_name << std::endl;
 		}	
 
-		for(Cards::const_iterator j = g._cards.begin(); j != g._cards.end(); j++)
+		BOOST_FOREACH(auto j, g._cards)
 		{
-			if (i == (*j)->_deck && (*j)->_type != Card::Normal)
+			if (i == j->_deck && j->_type != Card::Normal)
 			{
-				cardList << (*j)->_type << '\t' << 1 << '\t' << (*j)->_name << std::endl;
+				cardList << j->_type << '\t' << 1 << '\t' << j->_name << std::endl;
 			}
 		}
 	}
 
-	for(Powers::const_iterator i = g._powers.begin(); i != g._powers.end(); i++)
+	BOOST_FOREACH(auto i, g._powers)
 	{
-		powerList << i->first->_name << std::endl;
+		powerList << i.first->_name << std::endl;
 	}
 
 	return ErrNone;
@@ -287,17 +289,17 @@ int parseExport(const std::vector<std::string> &names, Game &g, std::ostream &ou
 
 	fs::ofstream auth(base / "auth", std::ios::binary);
 	fs::ofstream contact(base / "contact", std::ios::binary);
-	for(Powers::const_iterator i = g._powers.begin(); i != g._powers.end(); i++)
+	BOOST_FOREACH(auto i, g._powers)
 	{
-		if (!i->second)
+		if (!i.second)
 			continue;
-		fs::ofstream out(base / i->first->_name, std::ios::binary);
+		fs::ofstream out(base / i.first->_name, std::ios::binary);
 		
-		auth << i->first->_name << ' ' << i->second->_password << std::endl;
-		contact << i->first->_name << '\t' << i->second->_name << '\t' << i->second->_email << std::endl;
-		for(Hand::const_iterator j = i->first->_hand.begin(); j != i->first->_hand.end(); j++)
+		auth << i.first->_name << ' ' << i.second->_password << std::endl;
+		contact << i.first->_name << '\t' << i.second->_name << '\t' << i.second->_email << std::endl;
+		BOOST_FOREACH(auto j, i.first->_hand)
 		{
-			out << (*j)->_image << std::endl;
+			out << j->_image << std::endl;
 		}
 	}
 
@@ -427,16 +429,16 @@ int parseTrade(const std::vector<std::string> &names, Game &g, std::ostream &out
 	power->first->Merge(); power2->first->Merge();
 
 	out << power->first->_name << " Gives: \n";
-	for(Hand::const_iterator i = left.begin(); i != left.end(); i++)
+	BOOST_FOREACH(auto i, left)
 	{
-		out << (*i)->_name << ',';
+		out << i->_name << ',';
 	}
 	out << std::endl << std::endl;
 	
 	out << power2->first->_name << " Gives: \n";
-	for(Hand::const_iterator i = right.begin(); i != right.end(); i++)
+	BOOST_FOREACH(auto i, right)
 	{
-		out << (*i)->_name << ',';
+		out << i->_name << ',';
 	}
 	out << std::endl;
 	
@@ -578,12 +580,12 @@ int parseList(const std::vector<std::string> &names, Game &g, std::ostream &out)
 
 	if (boost::iequals(names[1],"powers"))
 	{
-		for(Powers::const_iterator i = g._powers.begin(); i != g._powers.end(); i++)
+		BOOST_FOREACH(auto i, g._powers)
 		{
-			out << i->first->_name << '\t';
-			for(Hand::const_iterator j = i->first->_hand.begin(); j != i->first->_hand.end(); j++)
+			out << i.first->_name << '\t';
+			BOOST_FOREACH(auto j, i.first->_hand)
 			{
-				out << (*j)->_name << ',';
+				out << j->_name << ',';
 			}
 			out << std::endl;
 		}
@@ -591,11 +593,11 @@ int parseList(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	}
 	if (boost::iequals(names[1],"players"))
 	{
-		for(Powers::const_iterator i = g._powers.begin(); i != g._powers.end(); i++)
+		BOOST_FOREACH(auto i, g._powers)
 		{
-			out << i->first->_name << '\t';
-			if (i->second)
-				out << i->second->_name  << "\t'" << i->second->_password << "'\t'" << i->second->_email << "'"; 
+			out << i.first->_name << '\t';
+			if (i.second)
+				out << i.second->_name  << "\t'" << i.second->_password << "'\t'" << i.second->_email << "'"; 
 			out << std::endl;
 		}
 		return ErrNone;
@@ -605,9 +607,9 @@ int parseList(const std::vector<std::string> &names, Game &g, std::ostream &out)
 		for(int i = 1; i < g._decks.size(); i++)
 		{
 			out << i << '\t';
-			for(Deck::const_iterator j = g._decks[i].begin(); j != g._decks[i].end(); j++)
+			BOOST_FOREACH(auto j, g._decks[i])
 			{
-				out << (*j)->_name << ',';
+				out << j->_name << ',';
 			}
 			out << std::endl;
 		}
@@ -626,18 +628,18 @@ int parseList(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	{
 		typedef std::multimap<CardP, PowerP, CardCompare> RevMap;
 		RevMap calamities;
-		for(Powers::const_iterator i = g._powers.begin(); i != g._powers.end(); i++)
+		BOOST_FOREACH(auto i, g._powers)
 		{
-			for(Hand::const_iterator j = i->first->_hand.begin(); j != i->first->_hand.end(); j++)
+			BOOST_FOREACH(auto j, i.first->_hand)
 			{
-				if ((*j)->_type != Card::Normal)
-					calamities.insert(std::make_pair(*j,i->first));
+				if (j->_type != Card::Normal)
+					calamities.insert(std::make_pair(j,i.first));
 			}
 		}
 
-		for(RevMap::const_iterator i = calamities.begin(); i != calamities.end(); i++)
+		BOOST_FOREACH(auto i, calamities)
 		{
-			out << i->first->_name << ": " << i->second->_name << std::endl;
+			out << i.first->_name << ": " << i.second->_name << std::endl;
 		}
 		return ErrNone;
 	}
@@ -653,18 +655,18 @@ int parseCount(const std::vector<std::string> &names, Game &g, std::ostream &out
 	if (boost::iequals(names[1],"calamities"))
 	{
 		int bigCount(0); 
-		for(Powers::const_iterator i = g._powers.begin(); i != g._powers.end(); i++)
+		BOOST_FOREACH(auto i, g._powers)
 		{
 			int count(0);
 			int smallCount(0);
-			for(Cards::const_iterator j = i->first->_hand.begin(); j != i->first->_hand.end(); j++)
+			BOOST_FOREACH(auto j, i.first->_hand)
 			{
-				if ((*j)->_type != Card::Normal)
+				if (j->_type != Card::Normal)
 					count++;
-				if ((*j)->_type == Card::Minor)
+				if (j->_type == Card::Minor)
 					smallCount++;
 			}
-			out << i->first->_name << '\t' << count-smallCount << '\t' << smallCount << std::endl;
+			out << i.first->_name << '\t' << count-smallCount << '\t' << smallCount << std::endl;
 			bigCount+=count;
 		}
 		out << "Total:\t" << bigCount << std::endl;
@@ -673,10 +675,10 @@ int parseCount(const std::vector<std::string> &names, Game &g, std::ostream &out
 	if (boost::iequals(names[1],"powers"))
 	{
 		int bigCount(0);
-		for(Powers::const_iterator i = g._powers.begin(); i != g._powers.end(); i++)
+		BOOST_FOREACH(auto i, g._powers)
 		{
-			out << i->first->_name << '\t' << i->first->_hand.size() << std::endl;
-			bigCount += i->first->_hand.size();
+			out << i.first->_name << '\t' << i.first->_hand.size() << std::endl;
+			bigCount += i.first->_hand.size();
 		}
 		out << "Total:\t" << bigCount << std::endl;
 		return ErrNone;
@@ -684,9 +686,9 @@ int parseCount(const std::vector<std::string> &names, Game &g, std::ostream &out
 	if (boost::iequals(names[1],"players"))
 	{
 		int count = 0;
-		for(Powers::const_iterator i = g._powers.begin(); i != g._powers.end(); i++)
+		BOOST_FOREACH(auto i, g._powers)
 		{
-			if (i->second)
+			if (i.second)
 				count++;
 		}
 		out << "Assigned Player: " << count << std::endl;
