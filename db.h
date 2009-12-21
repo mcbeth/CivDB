@@ -49,6 +49,7 @@ typedef boost::shared_ptr<Deck> DeckP;
 
 class CivCard;
 typedef boost::shared_ptr<CivCard> CivCardP;
+
 class CivCard
 {
 	public:
@@ -56,36 +57,27 @@ class CivCard
 		std::string _abbreviation;
 		std::string _image;
 		int _cost;
-		enum Group{
-			Craft,
-			Science,
-			Art,
-			Civic,
-			Religion,
-			GroupSize,
-		};
+
+		static const int GroupSize = 5;
+		typedef std::pair<std::string, std::string> Group_t;
+		typedef boost::array<Group_t, GroupSize> GroupList_t;
+		static const GroupList_t _groupList;
+
 		typedef boost::array<int, GroupSize> GroupCredits;
 		typedef std::bitset<GroupSize> Groups;
 
 		Groups _groups;
 		std::map<CivCardP, int> _cardCredits;
 		GroupCredits _groupCredits;
+		bool _evil;
+		int _victoryPoints;
+		int _groupPoints;
 		CivCard():_groups(0),_cost(0)
 		{
 			std::fill(_groupCredits.begin(), _groupCredits.end(), 0);
 		}
-};
 
-class CivPortfolio
-{
-	public:
-		int Cost(CivCardP card);
-		std::set<CivCardP> _cards;
-		CivCard::GroupCredits _bonusCredits;
-		CivPortfolio()
-		{
-			std::fill(_bonusCredits.begin(), _bonusCredits.end(), 0);
-		}
+		static int groupFromString(const std::string &n);
 };
 
 class CivCardCompare
@@ -94,6 +86,18 @@ class CivCardCompare
 	bool operator()(const CivCardP &lhs, const CivCardP &rhs) const;
 };
 typedef std::set<CivCardP, CivCardCompare> CivCards;
+
+class CivPortfolio
+{
+	public:
+		int Cost(CivCardP card);
+		CivCards _cards;
+		CivCard::GroupCredits _bonusCredits;
+		CivPortfolio()
+		{
+			std::fill(_bonusCredits.begin(), _bonusCredits.end(), 0);
+		}
+};
 
 class Power
 {
@@ -106,6 +110,8 @@ class Power
 	public:
 		void Merge();
  		bool Has(const Hand &cards) const;
+		bool Has(const CivCardP card) const;
+		bool Has(const CivCards &cards) const;
 		bool Stage(const Hand &cards);
 };
 

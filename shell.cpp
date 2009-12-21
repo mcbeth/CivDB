@@ -11,6 +11,12 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/foreach.hpp>
 
+#include <boost/bind.hpp>
+#include <boost/ref.hpp>
+
+#include <boost/assign.hpp>
+using namespace boost::assign;
+
 namespace fs = boost::filesystem;
 
 #include <readline/readline.h>
@@ -23,7 +29,10 @@ const std::string version("0.36");
 //typedef std::map<std::string, std::string> HelpText;
 
 boost::scoped_ptr<Game> s_g;
-//boost::scoped_ptr<HelpText> ht(new HelpText);
+
+typedef boost::function<char *(const char *, int)> FillFunc;
+
+std::vector<FillFunc> g_fillFuncs;
 std::string g_currentPower;
 int g_currentDeck(0);
 
@@ -35,7 +44,7 @@ typedef boost::serialization::singleton<Completer> CompleteFactory;
 	static bool _trigger ## _complete_registered = \
 		CompleteFactory::get_mutable_instance().Register(#_trigger, _func)
 
-const char *objectList[] = {"powers","players","decks","discards","calamities"};
+const char *objectList[] = {"powers","players","decks","discards","calamities","evil"};
 const char *rulesList[] = {"AdvCiv","CivProject30"};
 
 char *fillBuffer(const std::string &name, const std::string &text, int &state)
@@ -67,7 +76,9 @@ char *fillFromArray(const std::string &text, int state, const char **list, const
 	{
 		char *value = NULL;
 		if (value = fillBuffer(list[i], text, skip))
+		{
 			return value;
+		}
 	}
 	return NULL;
 }
@@ -85,6 +96,47 @@ char *fillFromComplete(const char *text, int state)
 			return value;
 	}
 
+	return NULL;
+}
+
+char *aggregateFill(const char *text, int state)
+{
+	static int oldVisits = 0;
+	static int visits = -1;
+	static int prevFunc = -1;
+
+	++visits;
+
+	for(int i = 0; i < g_fillFuncs.size(); ++i)
+	{
+		char *value = NULL;
+		if (i <= prevFunc)
+			continue;
+		if (value = g_fillFuncs[i](text, state-oldVisits))
+		{
+			return value;
+		}
+
+		prevFunc = i;
+		oldVisits = visits;
+	}
+	
+	oldVisits = 0;
+	visits = -1;
+	prevFunc = -1;
+	return NULL;
+}
+
+char *groupFill(const char *text, int state)
+{
+	const int matchLen = std::strlen(text);
+
+	BOOST_FOREACH(auto i, CivCard::_groupList)
+	{
+		char *value = NULL;
+		if (value = fillBuffer(i.first, text, state))
+			return value;
+	}
 	return NULL;
 }
 
@@ -107,6 +159,19 @@ char *setFill(const char *text, int state)
 	{
 		char *value = NULL;
 		if (value = fillBuffer(i.first, text, state))
+			return value;
+	}
+	return NULL;
+}
+
+char *importFill(const char *text, int state)
+{
+	const char *types[] = {"Civ"};
+	const int len = sizeof(types)/sizeof(const char *);
+	for(int i = 0; i < len; ++i)
+	{
+		char *value = NULL;
+		if (value = fillBuffer(types[i], text, state))
 			return value;
 	}
 	return NULL;
@@ -164,11 +229,83 @@ char *cardFill(const char *text, int state)
 	return NULL;
 }
 
+char *civNotFill(const char *text, int state)
+{
+	Powers::const_iterator power = s_g->FindPower(g_currentPower);
+	const std::string buffer(rl_line_buffer,rl_point);
+
+	if (power != s_g->_powers.end())
+	{
+		CivCards cards;
+		CivCardCompare cc;
+		std::set_difference(s_g->_civcards.begin(), 
+				s_g->_civcards.end(),
+				power->first->_civCards._cards.begin(),
+				power->first->_civCards._cards.end(),
+				std::inserter(cards,cards.begin()),
+				boost::bind(&CivCardCompare::operator(), cc, _1, _2));
+		BOOST_FOREACH(auto i, cards)
+		{
+			if (char *value = fillBuffer(i->_name, text, state))
+				return value;
+		}
+	} else
+	{
+		BOOST_FOREACH(auto i, s_g->_civcards)
+		{
+			char *value = NULL;
+			if (value = fillBuffer(i->_name, text, state))
+				return value;
+		}
+	}
+	return NULL;
+}
+/*
+char *civFill(const char *text, int state)
+{
+	Powers::const_iterator power = s_g->FindPower(g_currentPower);
+	const std::string buffer(rl_line_buffer,rl_point);
+
+	if (power != s_g->_powers.end())
+	{
+		BOOST_FOREACH(auto i, power->first->_civCards._cards)
+		{
+			if (char *value = fillBuffer(i->_name, text, state))
+				return value;
+		}
+	} else
+	{
+		BOOST_FOREACH(auto i, s_g->_civcards)
+		{
+			char *value = NULL;
+			if (value = fillBuffer(i->_name, text, state))
+				return value;
+		}
+	}
+	return NULL;
+}
+*/
 char *numberFill(const char *text, int state)
 {
 	const char *numbers[] = {"1","2","3","4","5","6","7","8","9"};
 	const int len = sizeof(numbers)/sizeof(const char *);
 	for(int i =0 ; i < len; ++i)
+	{
+		char *value = NULL;
+		if (value = fillBuffer(numbers[i], text, state))
+			return value;
+	}
+	return NULL;
+}
+
+char *multipleOfFive(const char *text, int state)
+{
+	std::vector<std::string> numbers;
+	for(int i = 0; i < 10; ++i)
+	{
+		numbers.push_back(boost::lexical_cast<std::string>(i*5));
+	}
+	for(int i = 0; i < numbers.size(); ++i)
 	{
 		char *value = NULL;
 		if (value = fillBuffer(numbers[i], text, state))
@@ -186,47 +323,6 @@ char *listFill(const char *text, int state)
 		if (value = fillBuffer(objectList[i], text, state))
 			return value;
 	}
-	return NULL;
-}
-
-char *augmentedHandFill(const char *text, int state)
-{
-	static int oldVisits = 0;
-	static int visits = -1;
-	char *value = NULL;
-	
-	++visits;
-	
-	if (value = countryFill(text, state))
-		return value;
-	else
-		if (!oldVisits)
-			oldVisits = visits;
-	
-	if (value = numberFill(text, state-oldVisits))
-		return value;
-	
-	oldVisits = visits = 0;
-	return NULL;
-}
-
-char *augmentedTradeFill(const char *text, int state)
-{
-	static int oldVisits = 0;
-	static int visits = -1;
-	char *value = NULL;
-
-	++visits;
-
-	if (value = countryFill(text, state))
-		return value;
-	else if (!oldVisits)
-		oldVisits = visits;
-
-	if (value = cardFill(text, state-oldVisits))
-		return value;
-
-	oldVisits = visits = 0;
 	return NULL;
 }
 
@@ -249,6 +345,39 @@ char *rulesFill(const char *text, int state)
 	return fillFromArray(text, state, rulesList, numValues);
 }
 
+char **completeBuy(const std::vector<std::string> &data, const char *text, int depth)
+{
+	static const char *words[] = {"Free"};
+	switch (depth)
+	{
+		case 1:
+			return rl_completion_matches(text, countryFill);
+			break;
+		case 2:
+			{
+			g_currentPower = data[1];
+			g_fillFuncs += cardFill,numberFill,boost::bind(fillFromArray,_1,_2,words,1);
+			char ** value = rl_completion_matches(text, aggregateFill);
+			g_currentPower = std::string();
+			g_fillFuncs.clear();
+			return value;
+			break;
+			}
+		default:
+			{
+				g_currentPower = data[1];
+				g_fillFuncs += cardFill,numberFill,boost::bind(fillFromArray,_1,_2,words,1),civNotFill;
+				char **value = rl_completion_matches(text, aggregateFill);
+				g_currentPower = std::string();
+				g_fillFuncs.clear();
+				return value;
+				break;
+			}
+	}
+
+	return NULL;
+}
+
 char **completeCreate(const std::vector<std::string> &, const char *text, int depth)
 {
 	switch (depth)
@@ -264,6 +393,30 @@ char **completeCreate(const std::vector<std::string> &, const char *text, int de
 			return rl_completion_matches(text, rulesFill);
 			break;
 		}
+	}
+	return NULL;
+}
+
+char **completeCost(const std::vector<std::string> &data, const char *text, int depth)
+{
+	switch (depth)
+	{
+		case 1:
+			{
+			g_fillFuncs += countryFill,civNotFill;
+			char **value = rl_completion_matches(text,aggregateFill);
+			g_fillFuncs.clear();
+			return value;
+			break;
+			}
+		case 2:
+			{
+			g_currentPower = data[1];
+			char **value = rl_completion_matches(text, civNotFill);
+			g_currentPower = std::string();
+			return value;
+			break;
+			}
 	}
 	return NULL;
 }
@@ -301,6 +454,17 @@ char **completeDraw(const std::vector<std::string> &, const char *text, int dept
 	return NULL;
 }
 
+char **completeImport(const std::vector<std::string> &, const char *text, int depth)
+{
+	switch(depth)
+	{
+		case 1:
+			return rl_completion_matches(text, importFill);
+		case 2:
+			return rl_completion_matches(text, rl_filename_completion_function);
+	}
+	return NULL;
+}
 
 char **completeExport(const std::vector<std::string> &, const char *text, int depth)
 {
@@ -317,7 +481,10 @@ char **completeHeld(const std::vector<std::string> &, const char *text, int dept
 	switch(depth)
 	{
 		case 1:
-			return rl_completion_matches(text,augmentedHandFill);
+			g_fillFuncs += numberFill,countryFill;
+			char **value = rl_completion_matches(text,aggregateFill);
+			g_fillFuncs.clear();
+			return value;
 	}
 	return NULL;
 }
@@ -398,7 +565,9 @@ char **completeTrade(const std::vector<std::string> &data, const char *text, int
 			}
 
 			g_currentPower = data[1];
-			char **value = rl_completion_matches(text, augmentedTradeFill);
+			g_fillFuncs += countryFill,cardFill;
+			char **value = rl_completion_matches(text, aggregateFill);
+			g_fillFuncs.clear();
 			g_currentPower = std::string();
 			return value;
 		}
@@ -409,7 +578,10 @@ char **completeTrade(const std::vector<std::string> &data, const char *text, int
 
 char **completeValue(const std::vector<std::string> &data, const char *text, int)
 {
-	return rl_completion_matches(text, cardFill);
+	g_fillFuncs += cardFill,numberFill;
+	char **value = rl_completion_matches(text, aggregateFill);
+	g_fillFuncs.clear();
+	return value;
 }
 
 char **completeShuffleIn(const std::vector<std::string> &data, const char *text, int depth)
@@ -441,6 +613,7 @@ char **completeList(const std::vector<std::string> &data, const char *text, int 
 
 char **completeGive(const std::vector<std::string> &data, const char *text, int depth)
 {
+	static const char *words[] = {"Random"};
 	switch(depth)
 	{
 		case 1:
@@ -450,11 +623,33 @@ char **completeGive(const std::vector<std::string> &data, const char *text, int 
 		case 3:
 		{
 			g_currentPower = data[1];
-			char **value = rl_completion_matches(text, cardFill);
+			g_fillFuncs += cardFill, boost::bind(fillFromArray,_1,_2,words,1);
+			char **value = rl_completion_matches(text, aggregateFill);
+			g_fillFuncs.clear();
 			g_currentPower = std::string();
 			return value;
 		}
 	}
+	return NULL;
+}
+
+char **completeGrant(const std::vector<std::string> &data, const char *text, int depth)
+{
+	switch (depth)
+	{
+		case 1:
+			return rl_completion_matches(text, countryFill);
+			break;
+		case 2:
+			{
+			return rl_completion_matches(text, groupFill);
+			break;
+			}
+		case 3:
+			return rl_completion_matches(text, multipleOfFive);
+			break;
+	}
+	return NULL;
 }
 
 char **completeNULL(const std::vector<std::string> &, const char *, int)
@@ -462,11 +657,14 @@ char **completeNULL(const std::vector<std::string> &, const char *, int)
 	return NULL;
 }
 
+REG_COMP(Buy, completeBuy);
 REG_COMP(Create, completeCreate);
+REG_COMP(Cost, completeCost);
 REG_COMP(Discard, completeDiscard);
 REG_COMP(Draw, completeDraw);
 REG_COMP(Dump, completeExport);
 REG_COMP(Export, completeExport);
+REG_COMP(Import, completeImport);
 REG_COMP(Held, completeHeld);
 REG_COMP(SetPlayer, completeSetPlayer);
 REG_COMP(Set, completeSet);
@@ -479,6 +677,7 @@ REG_COMP(Value, completeValue);
 REG_COMP(List, completeList);
 REG_COMP(Count, completeList);
 REG_COMP(Give, completeGive);
+REG_COMP(Grant, completeGrant);
 REG_COMP(ShuffleIn, completeShuffleIn);
 REG_COMP(Help, completeHelp);
 

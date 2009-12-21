@@ -50,6 +50,7 @@ namespace boost { namespace serialization {
 		ar & make_nvp("groups", c._groups);
 		ar & make_nvp("cardCredits", c._cardCredits);
 		ar & make_nvp("groupCredits", c._groupCredits);
+		ar & make_nvp("evil", c._evil);
 	}
 	
 	template<class Archive>
@@ -92,15 +93,19 @@ namespace boost { namespace serialization {
 		ar & make_nvp("discards", g._discards);
 		if (version >= 2)
 			ar & make_nvp("variables", g._vars);
+		if (version >= 3)
+			ar & make_nvp("civcards", g._civcards);
 	}	
 }}
 
 BOOST_CLASS_VERSION(Power, 2)
 BOOST_CLASS_VERSION(Card, 2)
-BOOST_CLASS_VERSION(Game, 2)
+BOOST_CLASS_VERSION(Game, 3)
 
 bool CardCompare::operator()(const CardP &lhs, const CardP &rhs) const
 {
+	if (lhs.get() == rhs.get())
+		return false;
 	if (lhs->_type != rhs->_type)
 		if (lhs->_type == Card::Minor)
 			return true;
@@ -126,6 +131,21 @@ bool CardCompare::operator()(const CardP &lhs, const CardP &rhs) const
 		return true;
 
 	return false;
+}
+
+static const auto Craft = std::make_pair("Craft","#FF9A00");
+static const auto Science = std::make_pair("Science","#00FF00");
+static const auto Art = std::make_pair("Art","#3165FF");
+static const auto Civic = std::make_pair("Civic","#FF0000");
+static const auto Religion = std::make_pair("Religion","#FFFF00");
+const CivCard::GroupList_t CivCard::_groupList = {Craft, Science, Art, Civic, Religion};
+
+int CivCard::groupFromString(const std::string &n)
+{
+	for(int i = 0; i < GroupSize; i++)
+		if (boost::icontains(_groupList[i].first, n))
+			return i;
+	return GroupSize;
 }
 
 bool CivCardCompare::operator()(const CivCardP &lhs, const CivCardP &rhs) const
@@ -168,6 +188,21 @@ bool Power::Has(const Hand &cards) const
 			return false;
 	}
 	
+	return true;
+}
+
+bool Power::Has(const CivCardP card) const
+{
+	return _civCards._cards.find(card) != _civCards._cards.end();
+}
+
+bool Power::Has(const CivCards &cards) const
+{
+	BOOST_FOREACH(auto i, cards)
+	{
+		if (!Has(i))
+			return false;
+	}
 	return true;
 }
 
@@ -224,6 +259,7 @@ int CivPortfolio::Cost(CivCardP card)
 	if (_cards.find(card) != _cards.end())
 		return 0;
 	int cost = card->_cost;
+	int groupCost[CivCard::GroupSize] = {0};
 	for(auto i = _cards.begin(); i != _cards.end(); i++)
 	{
 		auto c = (*i)->_cardCredits.find(card);
@@ -231,13 +267,16 @@ int CivPortfolio::Cost(CivCardP card)
 			cost -= c->second;
 		for(auto j = 0; j != CivCard::GroupSize; j++)
 		{
-			cost -= (*i)->_groupCredits[j]*card->_groups[j];
+			groupCost[j] += (*i)->_groupCredits[j]*card->_groups[j];
 		}
 	}
 	for(auto i = 0; i != CivCard::GroupSize; i++)
 	{
-		cost -= _bonusCredits[i]*card->_groups[i];
+		groupCost[i] += _bonusCredits[i]*card->_groups[i];
 	}
+
+	cost -= *std::max_element(groupCost, groupCost+CivCard::GroupSize);
+
 	return cost;
 }
 

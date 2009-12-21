@@ -61,6 +61,25 @@ void RenderDeck(std::ostream &out, const Deck &deck)
 	}
 }
 
+void RenderCivPortfolio(std::ostream &out, const CivPortfolio &cards)
+{
+	const std::string groupName[] = {"Craft", "Science", "Art", "Civic", "Religion"};
+	BOOST_FOREACH(auto card, cards._cards)
+	{
+		out << card->_name << std::endl;
+	}
+	for(int i = 0; i < 5; i++)
+	{
+		out << groupName[i] << '\t';
+	}
+	out << std::endl;
+	BOOST_FOREACH(auto credits, cards._bonusCredits)
+	{
+		out << credits << '\t';
+	}
+	out << std::endl;
+}
+
 void MergeHands(Hand &target, const Hand &src)
 {
 	target.insert(src.begin(), src.end());
@@ -112,6 +131,8 @@ void ShowCard(CivCardP c)
 	{
 		std::cout << i.first->_name << " (" << i.second << ")" << '\t';
 	}
+	if (c->_evil)
+		std::cout << "EVIL";
 	std::cout << std::endl;
 }
 
@@ -151,6 +172,7 @@ bool ParseCivCards(const std::string &filename, Game &g)
 			bonus[card] = std::make_pair(values[12],boost::lexical_cast<int>(values[13]));
 		}
 		card->_abbreviation = values[14];
+		card->_evil = values[15][0] == 'Y';
 		card->_image = "";
 		g._civcards.insert(card);
 	}

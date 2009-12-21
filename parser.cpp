@@ -52,7 +52,6 @@ int parseHelpC(const std::vector<std::string> &names, Game &g, std::ostream &out
 
 int parseImport(const std::vector<std::string> &names, Game &g, std::ostream &out)
 {
-	std::cout << names.size() << std::endl;
 	if (names.size() != 3)
 		return parseHelpC(names, g, out);
 
@@ -64,16 +63,149 @@ int parseImport(const std::vector<std::string> &names, Game &g, std::ostream &ou
 }
 REG_PARSE(Import, "Civ file");
 
-int parseCost(const std::vector<std::string> &names, Game &g, std::ostream &out)
+int parseBuy(const std::vector<std::string> &names, Game &g, std::ostream &out)
 {
-	if (names.size() != 2)
+	if (names.size() < 3)
 		return parseHelpC(names, g, out);
 
-	auto card = g.FindCivCard(names[1]);
-	if (!card)
-		return ErrUnableToParse;
-	ShowCard(card);
+	Powers::iterator power;
+	if ((power = g.FindPower(names[1])) == g._powers.end())
+	{
+		return ErrPowerNotFound;
+	}
+
+	int breakPoint = 0;
+	for(int i = 3; i < names.size(); ++i)
+	{
+		if (g.FindCivCard(names[i]))
+		{
+			breakPoint = i;
+			break;
+		}
+	}
+
+	if (!breakPoint)
+		return ErrCardNotFound;
+
+	Hand left;
+	CivCards right;
+	bool free = false;
+	int tokens = 0;
+	for(int i = 2; i < breakPoint; ++i)
+	{
+		CardP card = g.FindCard(names[i]);
+		if (!card)
+		{
+			if (boost::iequals(names[i],"free"))
+				free = true;
+			else if (boost::all(names[i],boost::is_digit()))
+				tokens += boost::lexical_cast<int>(names[i]);
+			else
+				return ErrCardNotFound;
+
+			continue;
+		}
+		left.insert(card);
+	}
+
+	for(int i = breakPoint; i < names.size(); ++i)
+	{
+		CivCardP card = g.FindCivCard(names[i]);
+		if (!card)
+			return ErrCardNotFound;
+		right.insert(card);
+	}
+	
+	if (!power->first->Has(left))
+	{
+		return ErrCardNotFound;
+	}
+	if (power->first->Has(right))
+	{
+		return ErrCivCardDuplicate;
+	}
+
+	int cost = 0;
+	BOOST_FOREACH(auto i, right)
+	{
+		cost += power->first->_civCards.Cost(i);	
+	}
+	
+	int value = ValueHand(left);
+	if (tokens+value < cost && !free)
+	{
+		out << "Missing " << cost-tokens-value << std::endl;
+		return ErrInsufficientFunds;	
+	}
+
+	if (!Stage(power->first->_hand, power->first->_staging, left) )
+	{
+		return ErrCardDeletion;
+	}
+
+	if (!RemoveHand(power->first->_hand, left))
+		return ErrCardDeletion;
+
+	MergeDiscards(g, left);
+
+	BOOST_FOREACH(auto i, right)
+	{
+		power->first->_civCards._cards.insert(i);
+		std::cout << "Adding: " << i->_name << std::endl;
+	}
+
+	out << power->first->_name << " Gives: \n";
+	if (free)
+		out << "FREE,";
+	if (tokens)
+		out << tokens << ',';
+	BOOST_FOREACH(auto i, left)
+	{
+		out << i->_name << ',';
+	}
+	out << "\tTotal: " << value;
+	out << std::endl << std::endl;
+	
+	out << "For: \n";
+	BOOST_FOREACH(auto i, right)
+	{
+		out << i->_name << ',';
+	}
+	out << "\tTotal: " << cost;
+	out << std::endl;
+	
 	return ErrNone;
+}
+REG_PARSE(Buy, "Power Card/Token#/Free ... CivCard ...");
+
+int parseCost(const std::vector<std::string> &names, Game &g, std::ostream &out)
+{
+	if (names.size() != 2 && names.size() != 3)
+		return parseHelpC(names, g, out);
+
+	if (names.size() == 2)
+	{
+		auto card = g.FindCivCard(names[1]);
+		if (!card)
+			return ErrUnableToParse;
+		ShowCard(card);
+		return ErrNone;
+	}
+	else if (names.size() == 3)
+	{
+		auto power = g.FindPower(names[1]);
+		if (power == g._powers.end())
+			return ErrPowerNotFound;
+
+		auto card = g.FindCivCard(names[2]);
+		if (!card)
+			return ErrUnableToParse;
+
+		int cost = power->first->_civCards.Cost(card);	
+		std::cout << card->_name << " costs " << power->first->_name << " " << cost << std::endl;
+		return ErrNone;
+	}
+	return ErrUnableToParse;
 	
 }
 REG_PARSE(Cost, "CivCard");
@@ -134,7 +266,7 @@ int parseGive(const std::vector<std::string> &names, Game &g, std::ostream &out)
 
 	out << from->first->_name << " Gives: \n";
 
-	BOOST_FOREACH(CardP i, left)
+	BOOST_FOREACH(auto i, left)
 	{
 		out << i->_name << ',';
 	}
@@ -142,7 +274,32 @@ int parseGive(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	
 	return ErrNone;
 }
-REG_PARSE(Give, "FromPower ToPower Card");
+REG_PARSE(Give, "FromPower ToPower Card/Random");
+
+int parseGrant(const std::vector<std::string> &names, Game &g, std::ostream &out)
+{
+	if (names.size() != 4)
+		return parseHelpC(names, g, out);
+
+	auto i = g.FindPower(names[1]);
+	if (i == g._powers.end())
+		return ErrPowerNotFound;
+
+	int group = CivCard::groupFromString(names[2]);
+	if (group == CivCard::GroupSize)
+		return ErrGroupNotFound;
+
+	int quantity = 0;
+	if (boost::algorithm::all(names[3], boost::algorithm::is_digit()))
+			quantity = boost::lexical_cast<int>(names[3]);
+
+	i->first->_civCards._bonusCredits[group] += quantity;
+	
+	out << "Granted: " << quantity << " to " << i->first->_name << std::endl;
+	out << "Total now, " << i->first->_civCards._bonusCredits[group] << std::endl;
+	return ErrNone;
+}
+REG_PARSE(Grant, "");
 
 int parseSave(const std::vector<std::string> &names, Game &, std::ostream &)
 {
@@ -304,6 +461,88 @@ int parseDump(const std::vector<std::string> &names, Game &g, std::ostream &out)
 }
 REG_PARSE(Dump,"DestinationDir");
 
+void ExportCivCards(fs::ofstream &out, const Game &g)
+{
+	out << "<table border=1>" << std::endl;
+	out << "<tr>";
+	out << "<th>Cost</th>";
+	out << "<th colspan='3'></th>";
+	BOOST_FOREACH(auto power, g._powers)
+	{
+		out << "<th colspan='2'>" << power.first->_name << "</th>";
+	}
+	out << "</tr>" << std::endl;
+	BOOST_FOREACH(auto card, g._civcards)
+	{
+		out << "<td>";
+		out << card->_cost;
+		out << "</td>";
+		out << "<td>";
+		out << card->_name;
+		out << "</td>";
+		out << "<td colspan='2'>";
+		out << "<table height=20 width=40 cellspacing=0>";
+		out << "<tr>";
+		std::string color;
+
+		for(int i = 0; i < CivCard::GroupSize; ++i)
+		{
+			if (card->_groups[i])
+			{
+				out << "<td bgcolor='" << CivCard::_groupList[i].second << "'></td>";
+			}
+		}
+		out << "</tr>";
+		out << "</table>";
+		out << "</td>";
+		BOOST_FOREACH(auto power, g._powers)
+		{
+			out << "<td>";
+			if (power.first->Has(card))
+				out << 'X' << "</td><td>" << 'X' << "</td>";
+			else
+				out << "&nbsp;" << "</td><td>" << power.first->_civCards.Cost(card) << "</td>";
+		}
+		out << "</tr>" << std::endl;
+
+	}
+
+	out << "<tr>";
+	for(int i = 0; i != CivCard::GroupSize; ++i)
+	{
+		out << "<td colspan='4' bgcolor='" << CivCard::_groupList[i].second << "'>Bonus " << CivCard::_groupList[i].first << "</td>";
+		BOOST_FOREACH(auto power, g._powers)
+		{
+			out << "<td colspan='2'>";
+			if (power.first->_civCards._bonusCredits[i])
+				out << power.first->_civCards._bonusCredits[i];
+			else out << "&nbsp;";
+			out << "</td>";
+		}
+		out << "</tr>" << std::endl;
+	}
+
+	out << "<tr></tr>";
+	for(int i = 0; i != CivCard::GroupSize; ++i)
+	{
+		out << "<tr>";
+		out << "<td colspan='4' bgcolor='" << CivCard::_groupList[i].second << "'> " << CivCard::_groupList[i].first << " Total</td>";
+		BOOST_FOREACH(auto power, g._powers)
+		{
+			int groupTotal = 0;
+			out << "<td colspan='2'>";
+			BOOST_FOREACH(auto card, power.first->_civCards._cards)
+			{
+				if (card->_groupCredits[i])
+					groupTotal += card->_groupCredits[i];
+			}
+			groupTotal += power.first->_civCards._bonusCredits[i];
+			out << groupTotal << "</td>";
+		}
+		out << "</tr>" << std::endl;
+	}
+}
+
 int parseExport(const std::vector<std::string> &names, Game &g, std::ostream &out)
 {
 	if (names.size() != 2)
@@ -315,8 +554,12 @@ int parseExport(const std::vector<std::string> &names, Game &g, std::ostream &ou
 	else
 		base = names[1];
 
-	fs::ofstream auth(base / "auth", std::ios::binary);
-	fs::ofstream contact(base / "contact", std::ios::binary);
+	fs::ofstream auth(base / "auth");
+	fs::ofstream contact(base / "contact");
+	fs::ofstream civCards(base / "civcards");
+
+	ExportCivCards(civCards, g);
+
 	BOOST_FOREACH(auto i, g._powers)
 	{
 		if (!i.second)
@@ -371,6 +614,7 @@ int parseHeld(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	}
 	
 	RenderHand(out, power->first->_hand);
+	RenderCivPortfolio(out, power->first->_civCards);
 
 	return ErrNone;
 }
@@ -603,7 +847,7 @@ REG_PARSE(Value,"card/token# [card/token#] ...");
 
 int parseList(const std::vector<std::string> &names, Game &g, std::ostream &out)
 {
-	if (names.size() != 2)
+	if (names.size() != 2 && names.size() != 3)
 		return parseHelpC(names, g, out);
 
 	if (boost::iequals(names[1],"powers"))
@@ -671,9 +915,42 @@ int parseList(const std::vector<std::string> &names, Game &g, std::ostream &out)
 		}
 		return ErrNone;
 	}
+
+	if (boost::icontains(names[1],"evil"))
+	{
+		BOOST_FOREACH(auto power, g._powers)
+		{
+			bool output = false;
+			BOOST_FOREACH(auto card, power.first->_civCards._cards)
+			{
+				if (card->_evil)
+				{
+					if (!output)
+					{
+						out << power.first->_name << ": ";
+						output = true;
+					}
+					out << card->_name << ' ';	
+				}
+			}
+			if (output)
+				out << std::endl;
+		}
+		return ErrNone;
+	}
+/*
+	if (boost::icontains(names[1],"civcards"))
+	{
+		auto power = g.FindPower(names[2]);
+		if (power != g._powers.end())
+		{
+			return RenderPortfolio(power->_civCards);
+		}
+	}
+*/	
 	return ErrUnableToParse;
 }
-REG_PARSE(List,"powers/players/decks/discard/calamities");
+REG_PARSE(List,"powers/players/decks/discard/calamities/evil");
 
 int parseCount(const std::vector<std::string> &names, Game &g, std::ostream &out)
 {
@@ -744,6 +1021,23 @@ int parseCount(const std::vector<std::string> &names, Game &g, std::ostream &out
 		out << "Total:\t" << bigCount << std::endl;
 		return ErrNone;
 	}
+	if (boost::iequals(names[1],"evil"))
+	{
+		int bigCount(0);
+		BOOST_FOREACH(auto i, g._powers)
+		{
+			int count(0);
+			BOOST_FOREACH(auto j, i.first->_civCards._cards)
+			{
+				if (j->_evil)
+					++count;
+			}
+			out << i.first->_name << '\t' << count << std::endl;
+			bigCount+=count;
+		}
+		out << "Total:\t" << bigCount << std::endl;
+		return ErrNone;
+	}
 	return ErrUnableToParse;
 }
 REG_PARSE(Count,"powers/players/decks/discard/calamities");
@@ -760,7 +1054,7 @@ bool splitLine(const std::string &line, std::vector<std::string> &target)
 	if (!parse(trimmed.c_str(), sentence).full)
 		return false;
 	
-	BOOST_FOREACH(auto word, target)
+	BOOST_FOREACH(auto &word, target)
 	{
 		boost::replace_all(word, "\\ ", " ");
 	}

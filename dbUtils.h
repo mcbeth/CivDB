@@ -11,6 +11,9 @@ enum dbErrors
 	ErrUnableToParse,
 	ErrPowerNotFound,
 	ErrCardNotFound,
+	ErrCivCardDuplicate,
+	ErrInsufficientFunds,
+	ErrGroupNotFound,
 	ErrSave,
 	ErrQuit,  // Everything < this is continuable, Everything > is abortable
 	ErrAbort,
@@ -21,6 +24,7 @@ enum dbErrors
 int ValueHand(const Hand &hand);
 void RenderHand(std::ostream &out, const Hand &hand);
 void RenderDeck(std::ostream &out, const Deck &deck);
+void RenderCivPortfolio(std::ostream &out, const CivPortfolio &civCards);
 void ShuffleIn(Deck &d, Hand &hand);
 void MergeHands(Hand &target, const Hand &src);
 void MergeDiscards(Game &g, const Hand &toss);
