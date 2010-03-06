@@ -463,17 +463,19 @@ REG_PARSE(Dump,"DestinationDir");
 
 void ExportCivCards(fs::ofstream &out, const Game &g)
 {
-	out << "<table border=1>" << std::endl;
+	out << "<table id='civcard'>" << std::endl;
 	out << "<tr>";
 	out << "<th>Cost</th>";
 	out << "<th colspan='3'></th>";
 	BOOST_FOREACH(auto power, g._powers)
 	{
-		out << "<th colspan='2'>" << power.first->_name << "</th>";
+		out << "<th>" << power.first->_name << "</th>";
 	}
 	out << "</tr>" << std::endl;
+	out << "<tbody>" << std::endl;
 	BOOST_FOREACH(auto card, g._civcards)
 	{
+		out << "<tr>";
 		out << "<td>";
 		out << card->_cost;
 		out << "</td>";
@@ -489,7 +491,8 @@ void ExportCivCards(fs::ofstream &out, const Game &g)
 		{
 			if (card->_groups[i])
 			{
-				out << "<td bgcolor='" << CivCard::_groupList[i].second << "'></td>";
+				out << "<td class='" << CivCard::_groupList[i].first 
+					<< "'></td>";
 			}
 		}
 		out << "</tr>";
@@ -497,11 +500,12 @@ void ExportCivCards(fs::ofstream &out, const Game &g)
 		out << "</td>";
 		BOOST_FOREACH(auto power, g._powers)
 		{
-			out << "<td>";
+			out << "<td class='num'>";
 			if (power.first->Has(card))
-				out << 'X' << "</td><td>" << 'X' << "</td>";
+				out << "&#x2713";
 			else
-				out << "&nbsp;" << "</td><td>" << power.first->_civCards.Cost(card) << "</td>";
+				out << power.first->_civCards.Cost(card);
+			out << "</td>";
 		}
 		out << "</tr>" << std::endl;
 
@@ -510,10 +514,11 @@ void ExportCivCards(fs::ofstream &out, const Game &g)
 	out << "<tr>";
 	for(int i = 0; i != CivCard::GroupSize; ++i)
 	{
-		out << "<td colspan='4' bgcolor='" << CivCard::_groupList[i].second << "'>Bonus " << CivCard::_groupList[i].first << "</td>";
+		out << "<td colspan='4' class='" << CivCard::_groupList[i].first 
+			<< "'>Bonus " << CivCard::_groupList[i].first << "</td>";
 		BOOST_FOREACH(auto power, g._powers)
 		{
-			out << "<td colspan='2'>";
+			out << "<td class='num'>";
 			if (power.first->_civCards._bonusCredits[i])
 				out << power.first->_civCards._bonusCredits[i];
 			else out << "&nbsp;";
@@ -526,11 +531,12 @@ void ExportCivCards(fs::ofstream &out, const Game &g)
 	for(int i = 0; i != CivCard::GroupSize; ++i)
 	{
 		out << "<tr>";
-		out << "<td colspan='4' bgcolor='" << CivCard::_groupList[i].second << "'> " << CivCard::_groupList[i].first << " Total</td>";
+		out << "<td colspan='4' class='" << CivCard::_groupList[i].first
+		   	<< "'> " << CivCard::_groupList[i].first << " Total</td>";
 		BOOST_FOREACH(auto power, g._powers)
 		{
 			int groupTotal = 0;
-			out << "<td colspan='2'>";
+			out << "<td class='num'>";
 			BOOST_FOREACH(auto card, power.first->_civCards._cards)
 			{
 				if (card->_groupCredits[i])
@@ -541,6 +547,7 @@ void ExportCivCards(fs::ofstream &out, const Game &g)
 		}
 		out << "</tr>" << std::endl;
 	}
+	out << "</tbody>" << std::endl;
 }
 
 int parseExport(const std::vector<std::string> &names, Game &g, std::ostream &out)
