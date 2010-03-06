@@ -68,6 +68,8 @@ namespace boost { namespace serialization {
 			ar & make_nvp("staging",p._staging);
 		if (version >= 2)
 			ar & make_nvp("civCards",p._civCards);
+		if (version >= 3)
+			ar & make_nvp("ast",p._ast);
 	}
 	
 	template <class Archive>
@@ -98,7 +100,7 @@ namespace boost { namespace serialization {
 	}	
 }}
 
-BOOST_CLASS_VERSION(Power, 2)
+BOOST_CLASS_VERSION(Power, 3)
 BOOST_CLASS_VERSION(Card, 2)
 BOOST_CLASS_VERSION(Game, 3)
 
@@ -178,6 +180,21 @@ void Game::Load(const std::string &filename)
 	boost::archive::xml_iarchive ia(in);
 	ia >> boost::serialization::make_nvp("Game",*this);
 	std::cerr << "Loaded " << filename << std::endl;
+}
+
+Power::Power():_ast(0)
+{}
+
+
+bool PowerCompare::operator()(const PowerP &lhs, const PowerP &rhs) const
+{
+	if (lhs.get() == rhs.get())
+		return false;
+	if (lhs->_ast < rhs->_ast)
+		return true;
+	if (lhs->_ast > rhs->_ast)
+		return false;
+	return lhs->_name < rhs->_name;
 }
 
 bool Power::Has(const Hand &cards) const

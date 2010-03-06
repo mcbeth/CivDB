@@ -106,8 +106,10 @@ class Power
 	Hand _hand;
 	Hand _staging;
 	CivPortfolio _civCards;
+	int _ast;
 	
 	public:
+		Power();
 		void Merge();
  		bool Has(const Hand &cards) const;
 		bool Has(const CivCardP card) const;
@@ -116,6 +118,12 @@ class Power
 };
 
 typedef boost::shared_ptr<Power> PowerP;
+
+class PowerCompare
+{
+	public:
+	bool operator()(const PowerP &lhs, const PowerP &rhs) const;
+};
 
 class Player
 {
@@ -127,7 +135,7 @@ class Player
 
 typedef boost::shared_ptr<Player> PlayerP;
 
-typedef std::map<PowerP, PlayerP> Powers;
+typedef std::map<PowerP, PlayerP, PowerCompare> Powers;
 typedef std::vector<Deck> Decks;
 
 class Game
