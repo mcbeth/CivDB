@@ -5,6 +5,8 @@ Version 0.36:
 	-- added "grant" command
 	-- added civcards to the export
 	-- added ast order to powers, needs hand editing for now
+	-- added "evil" and "points" to count/list commands
+	-- added "CivProject21" to the rulesets
 Version 0.35:
 	-- added "set" command for game variables
 	-- export now stores the last used directory for default use

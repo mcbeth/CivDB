@@ -70,8 +70,6 @@ class CivCard
 		std::map<CivCardP, int> _cardCredits;
 		GroupCredits _groupCredits;
 		bool _evil;
-		int _victoryPoints;
-		int _groupPoints;
 		CivCard():_groups(0),_cost(0)
 		{
 			std::fill(_groupCredits.begin(), _groupCredits.end(), 0);
@@ -107,6 +105,8 @@ class Power
 	Hand _staging;
 	CivPortfolio _civCards;
 	int _ast;
+
+	typedef std::vector<std::pair<std::string, int>> Points;
 	
 	public:
 		Power();

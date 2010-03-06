@@ -189,6 +189,51 @@ bool ParseCivCards(const std::string &filename, Game &g)
 		ShowCard(card);
 }
 
+Points CountPoints(const Game &g, const Power &p)
+{
+	Points points;
+
+	auto rules = g._vars.find("ruleset");
+	if (rules == g._vars.end())
+		return points;
+
+	if (rules->second == "AdvCiv")
+	{
+		int civPoints = 0;
+		BOOST_FOREACH(auto card, p._civCards._cards)
+		{
+			civPoints += card->_cost;
+		}
+		points.push_back(std::make_pair(std::string("Civ"),civPoints));
+	}
+	else if (rules->second == "CivProject21")
+	{
+		int civPoints = 0;
+		BOOST_FOREACH(auto card, p._civCards._cards)
+		{
+			civPoints += int(card->_cost/100)+1;
+		}
+
+		points.push_back(std::make_pair(std::string("Civ"),civPoints));
+	}
+	else if (rules->second == "CivProject30")
+	{
+		int civPoints = 0;
+		BOOST_FOREACH(auto card, p._civCards._cards)
+		{
+			int cost = card->_cost;
+			if (cost < 100)
+				civPoints += 1;
+			else if (cost <= 200)
+				civPoints += 3;
+			else
+				civPoints += 6;
+		}	
+		points.push_back(std::make_pair(std::string("Civ"),civPoints));
+	}
+	return points;
+}
+
 bool ParseCardLists(const std::string &filename, Game &g)
 {
 	int lastRead = 0;
@@ -198,7 +243,7 @@ bool ParseCardLists(const std::string &filename, Game &g)
 	{
 		CardP card(new Card);
 		in >> card->_deck >> card->_maxCount;
-		if (g._vars["ruleset"] != "AdvCiv")
+		if (g._vars["ruleset"] == "CivProject30")
 			in >> card->_supplement;
 		else
 			card->_supplement = false;

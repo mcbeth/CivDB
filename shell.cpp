@@ -44,8 +44,8 @@ typedef boost::serialization::singleton<Completer> CompleteFactory;
 	static bool _trigger ## _complete_registered = \
 		CompleteFactory::get_mutable_instance().Register(#_trigger, _func)
 
-const char *objectList[] = {"powers","players","decks","discards","calamities","evil"};
-const char *rulesList[] = {"AdvCiv","CivProject30"};
+const char *objectList[] = {"powers","players","decks","discards","calamities","evil","points"};
+const char *rulesList[] = {"AdvCiv","CivProject21","CivProject30"};
 
 char *fillBuffer(const std::string &name, const std::string &text, int &state)
 {

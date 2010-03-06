@@ -30,6 +30,10 @@ void MergeHands(Hand &target, const Hand &src);
 void MergeDiscards(Game &g, const Hand &toss);
 bool RemoveHand(Hand &big, const Hand &deleted);
 bool Stage(Hand &src, Hand &dest, const Hand &cards);
+
+typedef std::vector<std::pair<std::string, int>> Points;
+Points CountPoints(const Game &h, const Power &p);
+
 bool CreateGame(const std::string &cards, const std::string &powers, const std::string &ruleset, Game &g);
 bool FillHand(const Game &g, const std::vector<std::string> &cardNames, Hand &hand);
 void FillCalamities(const Game &g, const Power &p, Hand &hand);

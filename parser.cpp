@@ -945,6 +945,21 @@ int parseList(const std::vector<std::string> &names, Game &g, std::ostream &out)
 		}
 		return ErrNone;
 	}
+	if (boost::icontains(names[1],"points"))
+	{
+		BOOST_FOREACH(auto power, g._powers)
+		{
+			std::vector<std::pair<std::string,int>> points;
+			points = CountPoints(g, *power.first);
+			out << power.first->_name << ": ";
+			BOOST_FOREACH(auto t, points)
+			{
+				out << t.first << '=' << t.second << ' ';
+			}
+			out << std::endl;
+		}
+		return ErrNone;
+	}
 /*
 	if (boost::icontains(names[1],"civcards"))
 	{
@@ -1043,6 +1058,23 @@ int parseCount(const std::vector<std::string> &names, Game &g, std::ostream &out
 			bigCount+=count;
 		}
 		out << "Total:\t" << bigCount << std::endl;
+		return ErrNone;
+	}
+	if (boost::iequals(names[1],"points"))
+	{
+		BOOST_FOREACH(auto power, g._powers)
+		{
+			std::vector<std::pair<std::string,int>> points;
+			points = CountPoints(g, *power.first);
+			out << power.first->_name << ": ";
+			int total = 0;
+			BOOST_FOREACH(auto t, points)
+			{
+				total += t.second;
+			}
+			out << total;
+			out << std::endl;
+		}
 		return ErrNone;
 	}
 	return ErrUnableToParse;
