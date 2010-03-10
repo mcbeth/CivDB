@@ -55,9 +55,11 @@ int parseImport(const std::vector<std::string> &names, Game &g, std::ostream &ou
 	if (names.size() != 3)
 		return parseHelpC(names, g, out);
 
-	std::cout << names[2] << std::endl;
-	if (ParseCivCards(names[2], g))
-		return ErrNone;
+	if (boost::iequals(names[1],"Civ"))
+	{
+		if (ParseCivCards(names[2], g))
+			return ErrNone;
+	}
 
 	return ErrUnableToParse;
 }
@@ -435,6 +437,7 @@ int parseDump(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	fs::path base(names[1]);
 	fs::ofstream cardList(base/"cardList", std::ios::binary);
 	fs::ofstream powerList(base/"powerList", std::ios::binary);
+	fs::ofstream civcardList(base/"civcardList", std::ios::binary);
 	for(int i = 0; i < g._decks.size(); ++i)
 	{
 		BOOST_FOREACH(auto j, g._cards)
@@ -457,11 +460,43 @@ int parseDump(const std::vector<std::string> &names, Game &g, std::ostream &out)
 		powerList << i.first->_name << std::endl;
 	}
 
+	civcardList << "COST\t"
+		<< "TECHNOLOGY\t"
+		<< "C\tS\tA\tV\tR\t"
+		<< "Craft\tScience\tArt\tCivic\tReligion\t"
+		<< "Extra\tCredit\tAbbreviation\tEvil\t"
+		<< std::endl;
+
+	BOOST_FOREACH(auto i, g._civcards)
+	{
+		civcardList << i->_cost << '\t';
+		civcardList << i->_name << '\t';
+		for(int group = 0; group < i->_groups.size(); ++group)
+		{
+			civcardList << (i->_groups[group]?'1':' ') << '\t';
+		}
+		BOOST_FOREACH(auto group, i->_groupCredits)
+		{
+			civcardList << group << '\t';
+		}
+		if (i->_cardCredits.size())
+		{
+			const auto &bonus = *i->_cardCredits.begin();
+			civcardList << bonus.first->_abbreviation << '\t';
+			civcardList << bonus.second << '\t';
+		}
+		else
+		{
+			civcardList << '\t' << '\t';
+		}
+		civcardList << i->_abbreviation << '\t';
+		civcardList << (i->_evil?'Y':'N') << std::endl;
+	}
 	return ErrNone;
 }
 REG_PARSE(Dump,"DestinationDir");
 
-void ExportCivCards(fs::ofstream &out, const Game &g)
+void ExportCivCards(std::ostream &out, const Game &g)
 {
 	out << "<table id='civcard'>" << std::endl;
 	out << "<tr>";
@@ -572,12 +607,17 @@ int parseExport(const std::vector<std::string> &names, Game &g, std::ostream &ou
 		if (!i.second)
 			continue;
 		fs::ofstream out(base / i.first->_name, std::ios::binary);
+		fs::ofstream civOut(base / (i.first->_name + ".civ"), std::ios::binary);
 		
 		auth << i.first->_name << ' ' << i.second->_password << std::endl;
 		contact << i.first->_name << '\t' << i.second->_name << '\t' << i.second->_email << std::endl;
 		BOOST_FOREACH(auto j, i.first->_hand)
 		{
 			out << j->_image << std::endl;
+		}
+		BOOST_FOREACH(auto j, i.first->_civCards._cards)
+		{
+			civOut << j->_image << std::endl;
 		}
 	}
 
