@@ -607,7 +607,7 @@ int parseExport(const std::vector<std::string> &names, Game &g, std::ostream &ou
 		if (!i.second)
 			continue;
 		fs::ofstream out(base / i.first->_name, std::ios::binary);
-		fs::ofstream civOut(base / (i.first->_name + ".civ"), std::ios::binary);
+		fs::ofstream civOut(base / ("civ" + i.first->_name), std::ios::binary);
 		
 		auth << i.first->_name << ' ' << i.second->_password << std::endl;
 		contact << i.first->_name << '\t' << i.second->_name << '\t' << i.second->_email << std::endl;
