@@ -140,11 +140,6 @@ int parseBuy(const std::vector<std::string> &names, Game &g, std::ostream &out)
 		return ErrInsufficientFunds;	
 	}
 
-	if (!Stage(power->first->_hand, power->first->_staging, left) )
-	{
-		return ErrCardDeletion;
-	}
-
 	if (!RemoveHand(power->first->_hand, left))
 		return ErrCardDeletion;
 
@@ -165,7 +160,7 @@ int parseBuy(const std::vector<std::string> &names, Game &g, std::ostream &out)
 	{
 		out << i->_name << ',';
 	}
-	out << "\tTotal: " << value;
+	out << "\tTotal: " << value+tokens;
 	out << std::endl << std::endl;
 	
 	out << "For: \n";
