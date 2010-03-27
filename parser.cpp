@@ -521,7 +521,7 @@ void ExportCivCards(std::ostream &out, const Game &g)
 		{
 			if (card->_groups[i])
 			{
-				out << "<td class='" << CivCard::_groupList[i].first 
+                                out << "<td class='" << CivCard::_groupList[i]
 					<< "'></td>";
 			}
 		}
@@ -544,8 +544,8 @@ void ExportCivCards(std::ostream &out, const Game &g)
 	out << "<tr>";
 	for(int i = 0; i != CivCard::GroupSize; ++i)
 	{
-		out << "<td colspan='4' class='" << CivCard::_groupList[i].first 
-			<< "'>Bonus " << CivCard::_groupList[i].first << "</td>";
+                out << "<td colspan='4' class='" << CivCard::_groupList[i]
+                        << "'>Bonus " << CivCard::_groupList[i] << "</td>";
 		BOOST_FOREACH(auto power, g._powers)
 		{
 			out << "<td class='num'>";
@@ -561,8 +561,8 @@ void ExportCivCards(std::ostream &out, const Game &g)
 	for(int i = 0; i != CivCard::GroupSize; ++i)
 	{
 		out << "<tr>";
-		out << "<td colspan='4' class='" << CivCard::_groupList[i].first
-		   	<< "'> " << CivCard::_groupList[i].first << " Total</td>";
+                out << "<td colspan='4' class='" << CivCard::_groupList[i]
+                        << "'> " << CivCard::_groupList[i] << " Total</td>";
 		BOOST_FOREACH(auto power, g._powers)
 		{
 			int groupTotal = 0;

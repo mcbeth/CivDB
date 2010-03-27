@@ -134,7 +134,7 @@ char *groupFill(const char *text, int state)
 	BOOST_FOREACH(auto i, CivCard::_groupList)
 	{
 		char *value = NULL;
-		if (value = fillBuffer(i.first, text, state))
+                if (value = fillBuffer(i, text, state))
 			return value;
 	}
 	return NULL;

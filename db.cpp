@@ -135,17 +135,17 @@ bool CardCompare::operator()(const CardP &lhs, const CardP &rhs) const
 	return false;
 }
 
-static const auto Craft = std::make_pair("Craft","#FF9A00");
-static const auto Science = std::make_pair("Science","#00FF00");
-static const auto Art = std::make_pair("Art","#3165FF");
-static const auto Civic = std::make_pair("Civic","#FF0000");
-static const auto Religion = std::make_pair("Religion","#FFFF00");
-const CivCard::GroupList_t CivCard::_groupList = {Craft, Science, Art, Civic, Religion};
+//static const auto Craft = "Craft","#FF9A00");
+//static const auto Science = std::make_pair("Science","#00FF00");
+//static const auto Art = std::make_pair("Art","#3165FF");
+//static const auto Civic = std::make_pair("Civic","#FF0000");
+//static const auto Religion = std::make_pair("Religion","#FFFF00");
+const CivCard::GroupList_t CivCard::_groupList = {"Craft", "Science", "Art", "Civic", "Religion"};
 
 int CivCard::groupFromString(const std::string &n)
 {
 	for(int i = 0; i < GroupSize; i++)
-		if (boost::icontains(_groupList[i].first, n))
+                if (boost::icontains(_groupList[i], n))
 			return i;
 	return GroupSize;
 }

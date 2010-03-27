@@ -59,7 +59,7 @@ class CivCard
 		int _cost;
 
 		static const int GroupSize = 5;
-		typedef std::pair<std::string, std::string> Group_t;
+                typedef const char * Group_t;
 		typedef boost::array<Group_t, GroupSize> GroupList_t;
 		static const GroupList_t _groupList;
 
